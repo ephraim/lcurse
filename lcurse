@@ -25,6 +25,8 @@ addons = []
 pynotify.init('Basics')
 
 config = RawConfigParser()
+appfolder = os.path.dirname(sys.argv[0])
+windowIcon = appfolder + "/media/icon.png"
 
 try:
     if not os.path.exists(os.path.expanduser('~/.lcurse')):
@@ -142,7 +144,7 @@ class WoWCurseWindow(QtGui.QWidget):
 
         self.resize(800, 600)
         self.setWindowTitle('WoW!Curse')
-        #self.setWindowIcon(QtGui.QIcon('/usr/share/icons/Wow-icon-scalable.svg'))
+        self.setWindowIcon(QtGui.QIcon(windowIcon))
         
         screen = QtGui.QDesktopWidget().screenGeometry()
         size = self.geometry()
@@ -304,7 +306,7 @@ class SettingsWindow(QtGui.QWidget):
         
         self.resize(400, 300)
         self.setWindowTitle('Einstellungen')
-        #self.setWindowIcon(QtGui.QIcon('/usr/share/icons/Wow-icon-scalable.svg'))
+        self.setWindowIcon(QtGui.QIcon(windowIcon))
         
         screen = QtGui.QDesktopWidget().screenGeometry()
         size = self.geometry()
