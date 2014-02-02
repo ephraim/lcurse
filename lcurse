@@ -67,37 +67,6 @@ def getFile(url):
     os.remove('/tmp/{}'.format(filename))
     return filename
 
-
-class NetworkAccessManager(QtNetwork.QNetworkAccessManager):
-    def __init__(self, old_manager):
-        QtNetwork.QNetworkAccessManager.__init__(self)
-        self.old_manager = old_manager
-        self.setCache(old_manager.cache())
-        self.setCookieJar(old_manager.cookieJar())
-        self.setProxy(old_manager.proxy())
-        self.setProxyFactory(old_manager.proxyFactory())
-
-    
-    def createRequest(self, operation, request, data):
-        if request.url().scheme() != "curse":
-            return QtNetwork.QNetworkAccessManager.createRequest(self, operation, request, data)
-        else:
-            #print(str(request.url()))
-            o = urlparse(str(request.url().toString()))
-            addons.append(['', 'http://www.curse.com/addons/wow/{}'.format(o.path.split('/')[2]), ''])
-            widget.table.setRowCount(len(addons))
-            widget.updateCells()
-            widget.table.resizeColumnsToContents()
-            widget.html.hide()
-            widget.table.show()
-        if operation == self.GetOperation:
-            # Handle download:// URLs separately by creating custom
-            # QNetworkReply objects.
-            #reply = QtNetwork.QNetworkReply(self, request.url(), self.GetOperation)
-            #return reply
-
-            return QtNetwork.QNetworkAccessManager.createRequest(self, operation, request, data)
-
 class UpdateAddons(QtCore.QThread):
     def __init__(self):
         QtCore.QThread.__init__(self)
@@ -109,8 +78,12 @@ class UpdateAddons(QtCore.QThread):
         for i in range(len(addons)):
             self.emit(QtCore.SIGNAL("checkingForUpdate(int)"), i)
             try:
-                response = urllib2.urlopen(str(addons[i][1] + '/download'))
-            except urllib2.HTTPError:
+                opener = urllib2.build_opener()
+                # default User-Agent ('Python-urllib/2.6') will *not* work
+                opener.addheaders = [('User-Agent', 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-US; rv:1.9.2.11) Gecko/20101012 Firefox/3.6.11'),]
+                response = opener.open(str(addons[i][1] + '/download'))
+            except urllib2.HTTPError as e:
+                print e
                 self.emit(QtCore.SIGNAL("addonNotFound(int)"), i)
                 continue
 
@@ -393,9 +366,5 @@ app = QtGui.QApplication(sys.argv)
 settings_widget = SettingsWindow()
 widget = WoWCurseWindow()
 widget.show()
-
-old_manager = widget.html.page().networkAccessManager()
-new_manager = NetworkAccessManager(old_manager)
-widget.html.page().setNetworkAccessManager(new_manager)
 
 sys.exit(app.exec_())
