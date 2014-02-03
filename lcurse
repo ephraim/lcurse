@@ -57,7 +57,10 @@ bumbledict = {'primus': 'optirun -b primus wine', 'bumblebee': 'optirun wine', '
 
 
 def getFile(url):
-    response = urllib2.urlopen(url)
+    opener = urllib2.build_opener()
+    # default User-Agent ('Python-urllib/2.6') will *not* work
+    opener.addheaders = [('User-Agent', 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-US; rv:1.9.2.11) Gecko/20101012 Firefox/3.6.11'),]
+    response = opener.open(str(addons[i][1] + '/download'))
     data = response.read()
     filename = url.split('/')[-1]
     with open('/tmp/{}'.format(filename), 'wb') as zipped:
