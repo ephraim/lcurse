@@ -60,7 +60,8 @@ def getFile(url):
     opener = urllib2.build_opener()
     # default User-Agent ('Python-urllib/2.6') will *not* work
     opener.addheaders = [('User-Agent', 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-US; rv:1.9.2.11) Gecko/20101012 Firefox/3.6.11'),]
-    response = opener.open(str(addons[i][1] + '/download'))
+    print "Looking for zipped addon at: ", url
+    response = opener.open(url)
     data = response.read()
     filename = url.split('/')[-1]
     with open('/tmp/{}'.format(filename), 'wb') as zipped:
@@ -83,7 +84,7 @@ class UpdateAddons(QtCore.QThread):
             try:
                 opener = urllib2.build_opener()
                 # default User-Agent ('Python-urllib/2.6') will *not* work
-                opener.addheaders = [('User-Agent', 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-US; rv:1.9.2.11) Gecko/20101012 Firefox/3.6.11'),]
+                opener.addheaders = [('User-Agent', 'Mozilla/5.0'),]
                 response = opener.open(str(addons[i][1] + '/download'))
             except urllib2.HTTPError as e:
                 print e
@@ -212,7 +213,7 @@ class WoWCurseWindow(QtGui.QWidget):
             
     def handleCheckingForUpdate(self, idx):
         print
-        print "Trying to update: ", addons[idx][0]
+        print "Trying to update: ", addons[idx][0], "(", str(addons[idx][1] + '/download'), ")"
         item = self.table.item(idx, 1)
         item.setBackground(QtCore.Qt.blue)
         self.table.scrollTo(self.table.indexFromItem(item))
