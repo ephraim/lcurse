@@ -67,7 +67,7 @@ def getFile(url):
     with open('/tmp/{}'.format(filename), 'wb') as zipped:
         zipped.write(data)
     zipped = ZipFile('/tmp/{}'.format(filename))
-    zipped.extractall(os.path.expanduser('~/{}/drive_c/{}/Interface/addons/'.format(prefix, wowinstalldir)))
+    zipped.extractall(os.path.expanduser('~/{}/drive_c/{}/Interface/AddOns/'.format(prefix, wowinstalldir)))
     os.remove('/tmp/{}'.format(filename))
     return filename
 
@@ -139,8 +139,6 @@ class WoWCurseWindow(QtGui.QWidget):
         start = QtGui.QPushButton('Start')
         self.connect(start, QtCore.SIGNAL('clicked()'), self.startWoW)
         
-        self.html = QtWebKit.QWebView()
-        self.html.hide()
         self.table = QtGui.QTableWidget()
         self.table.setColumnCount(3)
         self.table.setHorizontalHeaderLabels(QtCore.QStringList() << "Name" << "Url" << "Version")
@@ -156,9 +154,7 @@ class WoWCurseWindow(QtGui.QWidget):
         
         vbox = QtGui.QVBoxLayout()
         vbox.addWidget(self.table)
-        vbox.addWidget(self.html)
         vbox.addLayout(hbox)
-        
         self.setLayout(vbox)
         
         self.loadCsv()
@@ -196,6 +192,8 @@ class WoWCurseWindow(QtGui.QWidget):
 
     def handleItemChanged(self, row, column):
         item = self.table.item(row, column)
+        if(row >= len(addons)):
+            addons.append(['', '', '']);
         addons[row][column] = item.text()
         self.writeAddonsFile()
  
@@ -256,9 +254,7 @@ class WoWCurseWindow(QtGui.QWidget):
                 csvwriter.writerow(addons[i])
 
     def getNewAddon(self):
-        self.table.hide()
-        self.html.show()
-        self.html.load(QtCore.QUrl('http://www.curse.com/addons/wow/'))
+        self.table.insertRow(self.table.rowCount())
 
     def keyPressEvent(self, event):
         if event.matches(QtGui.QKeySequence.Delete):
