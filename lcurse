@@ -8,7 +8,7 @@
 # http://creativecommons.org/publicdomain/zero/1.0/
 
 
-import os, sys, urllib2, csv, pynotify
+import os, sys, cookielib, urllib2, csv, pynotify, time
 from os.path import *
 
 from urlparse import urlparse
@@ -23,6 +23,11 @@ ADDONS_FILE = '~/.lcurse/addons.csv'
 addons = []
 
 pynotify.init('Basics')
+
+cj = cookielib.CookieJar()
+opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+# default User-Agent ('Python-urllib/2.6') will *not* work
+opener.addheaders = [('User-Agent', 'Mozilla/5.0'),]
 
 config = RawConfigParser()
 appfolder = os.path.dirname(sys.argv[0])
@@ -55,11 +60,10 @@ bitdict = {64: 'WoW-64.exe', 32: 'WoW.exe'}
 
 bumbledict = {'primus': 'optirun -b primus wine', 'bumblebee': 'optirun wine', 'none': 'wine'}
 
+def currTime():
+    return time.strftime("%H:%M:%S", time.localtime())
 
 def getFile(url):
-    opener = urllib2.build_opener()
-    # default User-Agent ('Python-urllib/2.6') will *not* work
-    opener.addheaders = [('User-Agent', 'Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; en-US; rv:1.9.2.11) Gecko/20101012 Firefox/3.6.11'),]
     print "Looking for zipped addon at: ", url
     response = opener.open(url)
     data = response.read()
@@ -82,9 +86,7 @@ class UpdateAddons(QtCore.QThread):
         for i in range(len(addons)):
             self.emit(QtCore.SIGNAL("checkingForUpdate(int)"), i)
             try:
-                opener = urllib2.build_opener()
                 # default User-Agent ('Python-urllib/2.6') will *not* work
-                opener.addheaders = [('User-Agent', 'Mozilla/5.0'),]
                 response = opener.open(str(addons[i][1] + '/download'))
             except urllib2.HTTPError as e:
                 print e
@@ -211,24 +213,24 @@ class WoWCurseWindow(QtGui.QWidget):
             
     def handleCheckingForUpdate(self, idx):
         print
-        print "Trying to update: ", addons[idx][0], "(", str(addons[idx][1] + '/download'), ")"
+        print currTime(), "Trying to update: ", addons[idx][0], "(", str(addons[idx][1] + '/download'), ")"
         item = self.table.item(idx, 1)
         item.setBackground(QtCore.Qt.blue)
         self.table.scrollTo(self.table.indexFromItem(item))
 
     def handleAddonNotFound(self, idx):
-        print "Error retrieving something from: ", addons[idx][1]
+        print currTime(), "Error retrieving something from: ", addons[idx][1]
         self.table.item(idx, 1).setBackground(QtCore.Qt.red)
 
     def handleUpdated(self, idx):
-        print "Updated: ", addons[idx][0]
+        print currTime(), "Updated: ", addons[idx][0]
         self.updated.append(addons[idx][0])
         self.setCells(addons[idx], idx)
         self.table.item(idx, 1).setBackground(QtCore.Qt.green)
         self.table.resizeColumnsToContents()
 
     def handleNoUpdateNeeded(self, idx):
-        print "No Update needed: ", addons[idx][0]
+        print currTime(), "No Update needed: ", addons[idx][0]
         self.table.item(idx, 1).setBackground(QtCore.Qt.white)
 
     def handleFinished(self):
