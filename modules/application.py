@@ -4,6 +4,7 @@
 import sys
 import json
 import os
+import re
 
 from PyQt4 import Qt
 from bs4 import BeautifulSoup
@@ -21,7 +22,7 @@ opener.addheaders = [('User-Agent', 'Mozilla/5.0'),]
 class MainWidget(Qt.QWidget):
 	def __init__(self):
 		super(MainWidget, self).__init__()
-		self.addonsFile = os.path.expanduser("~/.lcurse/addons.json")
+		self.addonsFile = os.path.expanduser(defines.LCURSE_ADDONS)
 		self.addWidgets()
 		self.loadAddons()
 
@@ -39,6 +40,10 @@ class MainWidget(Qt.QWidget):
 		action.setShortcut('Ctrl+S')
 		action.setStatusTip(self.tr("Save your addons configuration"))
 		action.triggered.connect(self.saveAddons)
+		menuFile.addAction(action)
+		action = Qt.QAction(self.tr("Import Addons"), self)
+		action.setStatusTip(self.tr("Import Addons from WoW installation"))
+		action.triggered.connect(self.importAddons)
 		menuFile.addAction(action)
 
 		menuFile.addSeparator()
@@ -104,15 +109,102 @@ class MainWidget(Qt.QWidget):
 		box.addWidget(menubar)
 		box.addWidget(self.addonList)
 
+	def removeStupidStuff(self, s):
+		stupidstuff_re = re.compile(r"\|.*\|r")
+		m = stupidstuff_re.search(s)
+		if m != None:
+			s = s[:m.start()] + s[m.end():]
+			return s.strip()
+		return s
+
+	def extractAddonMetadataFromTOC(self, toc):
+		(name, uri, version, curseId) = ("", "", "", "")
+		title_re = re.compile(r"^## Title: (.*)$")
+		curse_title_re = re.compile(r"^## X-Curse-Project-Name: (.*)$")
+		curse_version_re = re.compile(r"^## X-Curse-Packaged-Version: (.*)$")
+		version_re = re.compile(r"^## Version: (.*)$")
+		curse_re = re.compile(r"^## X-Curse-Project-ID: (.*)$")
+		with open(toc) as f:
+			line = f.readline()
+			while line != "":
+				line = line.strip()
+				m = curse_title_re.match(line)
+				if m != None:
+					name = m.group(1)
+					line = f.readline()
+					continue
+				if name == "":
+					m = title_re.match(line)
+					if m != None:
+						name = m.group(1)
+						line = f.readline()
+						continue
+				m = curse_version_re.match(line)
+				if m != None:
+					version = m.group(1)
+					line = f.readline()
+					continue
+				if version == "":
+					m = version_re.match(line)
+					if m != None:
+						version = m.group(1)
+						line = f.readline()
+						continue
+				m = curse_re.match(line)
+				if m != None:
+					curseId = m.group(1)
+					line = f.readline()
+					continue
+				line = f.readline()
+
+		name = self.removeStupidStuff(name)
+		curseId = self.removeStupidStuff(curseId)
+
+		uri = "http://www.curse.com/addons/wow/%s" % (name.lower().replace(" ", ""))
+		if curseId != "":
+			uri = "http://www.curse.com/addons/wow/%s" % (curseId)
+
+		if name == "" or version == "":
+			return ["","",""]
+
+		return [name, uri, version]
+
+	def importAddons(self):
+		settings = Qt.QSettings()
+		parent = "%s/Interface/AddOns" % (settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT).toString())
+		contents = os.listdir(parent)
+		for item in contents:
+			itemDir = "%s/%s" % (parent, item)
+			if os.path.isdir(itemDir) and not item.lower().startswith("blizzard_"):
+				toc = "%s/%s.toc" % (itemDir, item)
+				if os.path.exists(toc):
+					tmp = self.extractAddonMetadataFromTOC(toc)
+					if tmp[0] == "":
+						continue
+					(name, uri, version) = tmp
+					row = self.addonList.rowCount()
+					if len(self.addonList.findItems(name, Qt.Qt.MatchExactly)) == 0:
+						self.addonList.setRowCount(row + 1)
+						self.insertAddon(row, name, uri, version)
+		self.addonList.resizeColumnsToContents()
+		self.addonList.sortItems(0)
+		self.saveAddons()
+
 	def openPreferences(self):
 		pref = preferences.PreferencesDlg(self)
 		pref.exec_()
 
+	def insertAddon(self, row, name, uri, version):
+		self.addonList.setItem(row, 0, Qt.QTableWidgetItem(name))
+		self.addonList.setItem(row, 1, Qt.QTableWidgetItem(uri))
+		self.addonList.setItem(row, 2, Qt.QTableWidgetItem(version))
+
 	def loadAddons(self):
 		self.addonList.clearContents()
 		addons = None
-		with file(self.addonsFile) as f:
-			addons = json.load(f)
+		if os.path.exists(self.addonsFile):
+			with file(self.addonsFile) as f:
+				addons = json.load(f)
 		if addons != None:
 			self.addonList.setRowCount(len(addons))
 			for (row, addon) in enumerate(addons):
@@ -143,6 +235,7 @@ class MainWidget(Qt.QWidget):
 				captions = soup.select(".caption span span span")
 				name = captions[0].string
 			except urllib2.HTTPError as e:
+				self.setRowColor(row, Qt.Qt.red)
 				print e
 
 			if name != "":
@@ -181,7 +274,8 @@ class MainWidget(Qt.QWidget):
 					self.setRowColor(row, Qt.Qt.yellow)
 					self.addonList.item(row, 0).setData(Qt.Qt.UserRole, (version, downloadLink))
 		except urllib2.HTTPError as e:
-			print e
+			self.setRowColor(row, Qt.Qt.red)
+			print(e)
 
 	def checkAddonForUpdate(self):
 		self._checkAddonForUpdate(self.addonList.currentRow())
@@ -193,12 +287,17 @@ class MainWidget(Qt.QWidget):
 		self.saveAddons()
 
 	def _updateAddon(self, row):
-		data = self.addonList.item(row, 0).data(Qt.Qt.UserRole).toPyObject()
-		if data == None:
-			self._checkAddonForUpdate(row)
-			data = self.addonList.item(row, 0).data(Qt.Qt.UserRole).toPyObject()
+		item = self.addonList.item(row, 0)
+		if item:
+			data = item.data(Qt.Qt.UserRole).toPyObject()
 			if data == None:
-				return
+				self._checkAddonForUpdate(row)
+				data = item.data(Qt.Qt.UserRole).toPyObject()
+				if data == None:
+					return
+		else:
+			print("could not retrieve item for row: %d" % (row))
+			return
 		try:
 			settings = Qt.QSettings()
 			print("updating addon %s to version %s ..." % (self.addonList.item(row, 0).text(), data[0]))
@@ -207,11 +306,12 @@ class MainWidget(Qt.QWidget):
 			with open('/tmp/{}'.format(filename), 'wb') as zipped:
 				zipped.write(response.read())
 			zipped = ZipFile('/tmp/{}'.format(filename))
-			zipped.extractall(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
+			zipped.extractall("%s/Interface/AddOns" % (settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT).toString()))
 			os.remove('/tmp/{}'.format(filename))
 			self.addonList.setItem(row, 2, Qt.QTableWidgetItem(data[0]))
 			self.setRowColor(row, Qt.Qt.green)
 		except Exception as e:
+			self.setRowColor(row, Qt.Qt.red)
 			print(e)
 
 	def updateAddon(self):
