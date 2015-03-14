@@ -2,14 +2,48 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import signal
+import os
 
-sys.path.insert(0, "./modules")
-
-from modules import application
 from PyQt4 import Qt
- 
+
+rootDir = os.path.dirname(os.path.realpath(__file__))
+modulesDir = "%s/modules" % (rootDir)
+appTranslationFile = "%s/translations/%s.qm" % (rootDir, Qt.QLocale.system().name())
+
+sys.path.insert(0, modulesDir)
+
+from modules import defines
+
+app = None
+ret = 42
+translations = []
+
+def loadTranslators():
+	qttranslator = Qt.QTranslator()
+	qttranslator.load("qt_" + Qt.QLocale.system().name(), Qt.QLibraryInfo.location(Qt.QLibraryInfo.TranslationsPath))
+	translations.append(qttranslator)
+	if os.path.exists(appTranslationFile):
+		apptranslator = Qt.QTranslator()
+		apptranslator.load(appTranslationFile)
+		translations.append(apptranslator)
+	else:
+		print("WARNING: gui translation file could not be found: %s" % (appTranslationFile))
+	
+	for translator in translations:
+		app.installTranslator(translator)
+
 if __name__ == "__main__":
-	app = application.Application(sys.argv)
 	Qt.QCoreApplication.setApplicationName("lcurse2")
-	sys.exit(app.start())
-sys.exit(42)
+	app = Qt.QApplication(sys.argv)
+	loadTranslators()
+
+	from modules import application
+	mainWidget = application.MainWidget()
+	try:
+		mainWidget.show()
+		ret = app.exec_()
+	except Exception as e:
+		print(str(e))
+
+sys.exit(ret)
