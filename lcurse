@@ -33,8 +33,10 @@ def loadTranslators():
 	for translator in translations:
 		app.installTranslator(translator)
 
+
 if __name__ == "__main__":
-	Qt.QCoreApplication.setApplicationName("lcurse2")
+	Qt.QCoreApplication.setApplicationName("lcurse")
+	Qt.QCoreApplication.setOrganizationName("None-Inc.")
 	app = Qt.QApplication(sys.argv)
 	loadTranslators()
 
