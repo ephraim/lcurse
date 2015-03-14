@@ -324,6 +324,7 @@ class MainWidget(Qt.QWidget):
 			os.remove(filename)
 
 			self.addonList.setItem(row, 2, Qt.QTableWidgetItem(data[0]))
+			item.setData(Qt.Qt.UserRole, None)
 			self.setRowColor(row, Qt.Qt.green)
 		except Exception as e:
 			self.setRowColor(row, Qt.Qt.red)
