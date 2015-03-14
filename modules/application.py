@@ -8,7 +8,7 @@ import re
 
 from PyQt4 import Qt
 from bs4 import BeautifulSoup
-from zipfile import ZipFile
+import zipfile
 
 import cookielib, urllib2
 import preferences
@@ -100,7 +100,7 @@ class MainWidget(Qt.QWidget):
 		self.addonList.setColumnCount(3)
 		self.addonList.setHorizontalHeaderLabels(["Name", "Url", "Version"])
 
-		self.resize(800, 600)
+		self.resize(830, 805)
 		screen = Qt.QDesktopWidget().screenGeometry()
 		size = self.geometry()
 		self.move((screen.width()-size.width())/2, (screen.height()-size.height())/4)
@@ -109,12 +109,23 @@ class MainWidget(Qt.QWidget):
 		box.addWidget(menubar)
 		box.addWidget(self.addonList)
 
+	def resizeEvent(self, event):
+		print("oldsize: %s, newSize: %s" % (str(event.oldSize()), str(self.geometry().size())))
+		super(MainWidget, self).resizeEvent(event)
+
+	def sizeHint(self):
+		width = self.addonList.sizeHintForColumn(0) + self.addonList.sizeHintForColumn(1) + self.addonList.sizeHintForColumn(2) + 63
+		size = Qt.QSize(width, 805)
+		print("sizehint: %s" % (str(size)))
+		return size
+
+	def adjustSize(self):
+		self.resize(self.sizeHint())
+
 	def removeStupidStuff(self, s):
-		stupidstuff_re = re.compile(r"\|.*\|r")
-		m = stupidstuff_re.search(s)
-		if m != None:
-			s = s[:m.start()] + s[m.end():]
-			return s.strip()
+		s = re.sub(r"\|r", "", s)
+		s = re.sub(r"\|c.{8}", "", s)
+		s = re.sub(r"\[|\]", "", s)
 		return s
 
 	def extractAddonMetadataFromTOC(self, toc):
@@ -160,11 +171,12 @@ class MainWidget(Qt.QWidget):
 		name = self.removeStupidStuff(name)
 		curseId = self.removeStupidStuff(curseId)
 
-		uri = "http://www.curse.com/addons/wow/%s" % (name.lower().replace(" ", ""))
+		uri = "http://www.curse.com/addons/wow/%s" % (name.lower().replace(" ", "-"))
 		if curseId != "":
 			uri = "http://www.curse.com/addons/wow/%s" % (curseId)
 
 		if name == "" or version == "":
+			print("not enough informations found for addon in toc: %s" % (toc))
 			return ["","",""]
 
 		return [name, uri, version]
@@ -212,6 +224,7 @@ class MainWidget(Qt.QWidget):
 				self.addonList.setItem(row, 1, Qt.QTableWidgetItem(addon["uri"]))
 				self.addonList.setItem(row, 2, Qt.QTableWidgetItem(addon["version"]))
 			self.addonList.resizeColumnsToContents()
+			self.adjustSize()
 
 	def saveAddons(self):
 		addons = []
@@ -248,7 +261,7 @@ class MainWidget(Qt.QWidget):
 	def removeAddon(self):
 		row = self.addonList.currentRow()
 		if row != 0:
-			answer = Qt.QMessageBox.question(self, self.tr("Remove selected addon"), self.tr("Do you really want to remove the following addon?\n%s") % (str(self.addonList.item(row, 0).text())),
+			answer = Qt.QMessageBox.question(self, self.tr("Remove selected addon"), str(self.tr("Do you really want to remove the following addon?\n%s")) % (str(self.addonList.item(row, 0).text())),
 						Qt.QMessageBox.Yes, Qt.QMessageBox.No)
 			if answer == Qt.QMessageBox.Yes:
 				self.addonList.removeRow(row)
@@ -302,12 +315,14 @@ class MainWidget(Qt.QWidget):
 			settings = Qt.QSettings()
 			print("updating addon %s to version %s ..." % (self.addonList.item(row, 0).text(), data[0]))
 			response = opener.open(data[1])
-			filename = data[1].split('/')[-1]
-			with open('/tmp/{}'.format(filename), 'wb') as zipped:
+			filename = "/tmp/%s" % (data[1].split('/')[-1])
+			dest = "%s/Interface/AddOns/" % (settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT).toString())
+			with open(filename, 'wb') as zipped:
 				zipped.write(response.read())
-			zipped = ZipFile('/tmp/{}'.format(filename))
-			zipped.extractall("%s/Interface/AddOns" % (settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT).toString()))
-			os.remove('/tmp/{}'.format(filename))
+			with zipfile.ZipFile(filename, "r") as z:
+				z.extractall(dest)
+			os.remove(filename)
+
 			self.addonList.setItem(row, 2, Qt.QTableWidgetItem(data[0]))
 			self.setRowColor(row, Qt.Qt.green)
 		except Exception as e:
