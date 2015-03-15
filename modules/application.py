@@ -321,14 +321,19 @@ class MainWidget(Qt.QMainWindow):
 
 	def updateAddon(self):
 		row = self.addonList.currentRow()
-		self.checkAddonForUpdate()
 		addons = []
 		data = self.addonList.item(row, 0).data(Qt.Qt.UserRole)
-		if data:
-			name = self.addonList.item(row, 0).text()
-			uri = self.addonList.item(row, 1).text()
-			version = self.addonList.item(row, 2).text()
-			addons.append((row, name, uri, version, data))
+		if data == None:
+			self.checkAddonForUpdate()
+
+		data = self.addonList.item(row, 0).data(Qt.Qt.UserRole)
+		if data == None:
+			return
+
+		name = self.addonList.item(row, 0).text()
+		uri = self.addonList.item(row, 1).text()
+		version = self.addonList.item(row, 2).text()
+		addons.append((row, name, uri, version, data))
 
 		if len(addons):
 			updateDlg = waitdlg.UpdateDlg(self, addons)
