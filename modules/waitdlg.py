@@ -4,6 +4,7 @@ import cookielib, urllib2
 import zipfile
 import defines
 import os
+import re
 
 class CheckDlg(Qt.QDialog):
 	checkFinished = Qt.pyqtSignal(Qt.QVariant, bool, Qt.QVariant)
@@ -128,3 +129,69 @@ class UpdateWorker(Qt.QThread):
 		result = self.doUpdate()
 		self.updateFinished.emit(self.addon, result) 
 
+
+class UpdateCatalogDlg(Qt.QDialog):
+	updateCatalogFinished = Qt.pyqtSignal(Qt.QVariant)
+	def __init__(self, parent):
+		super(UpdateCatalogDlg, self).__init__(parent)
+		layout = Qt.QVBoxLayout(self)
+		layout.addWidget(Qt.QLabel(self.tr("Updating list of available Addons...")))
+		self.progress = Qt.QProgressBar(self)
+		self.progress.setRange(0, 0)
+		layout.addWidget(self.progress)
+
+	def exec_(self):
+		self.thread = UpdateCatalogWorker()
+		self.thread.updateCatalogFinished.connect(self.onUpdateCatalogFinished)
+		self.thread.progress.connect(self.onProgress)
+		self.thread.start()
+		super(UpdateCatalogDlg, self).exec_()
+
+	def onProgress(self, curval, maxval, foundAddons):
+		self.progress.setRange(0, maxval)
+		self.progress.setValue(curval)
+		self.progress.setFormat("%%p%% - found Addons: %d" % (foundAddons))
+
+	@Qt.pyqtSlot(Qt.QVariant)
+	def onUpdateCatalogFinished(self, addons):
+		self.updateCatalogFinished.emit(addons)
+		self.close()
+
+class UpdateCatalogWorker(Qt.QThread):
+	updateCatalogFinished = Qt.pyqtSignal(Qt.QVariant)
+	progress = Qt.pyqtSignal(int, int, int)
+	def __init__(self):
+		super(UpdateCatalogWorker, self).__init__()
+		self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
+		# default User-Agent ('Python-urllib/2.6') will *not* work
+		self.opener.addheaders = [('User-Agent', 'Mozilla/5.0'),]
+
+	# pager => "Page 1 of 178"
+	def parsePager(self, pager):
+		m = re.search("(\d+) of (\d+)", pager)
+		if m == None:
+			raise Exception("pager is crap")
+		return (int(m.group(1)), int(m.group(2)))
+
+	def retrieveListOfAddons(self):
+		page = 1
+		lastpage = 1
+
+		addons = []
+		while page <= lastpage:
+			response = self.opener.open("http://www.curse.com/addons/wow?page=%d" % (page))
+			soup = BeautifulSoup(response.read())
+
+			links = soup.select("li .title h4 a") # li .title h4 a")
+			for link in links:
+				addons.append( [ link.string, "http://www.curse.com%s" % (link.get("href")) ])
+
+			pager = soup.select("span .pager-display")
+			(page, lastpage) = self.parsePager(pager[0].string)
+			page += 1
+			self.progress.emit(page, lastpage, len(addons))
+		return addons
+
+	def run(self):
+		result = self.retrieveListOfAddons()
+		self.updateCatalogFinished.emit(result)

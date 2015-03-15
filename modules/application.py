@@ -5,19 +5,32 @@ import sys
 import json
 import os
 import re
+import urlparse
+import cookielib, urllib2, urllib
+from bs4 import BeautifulSoup
 
 from PyQt5 import Qt
 
 import preferences
+import addaddondlg
 import waitdlg
 import defines
+
+opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
+# default User-Agent ('Python-urllib/2.6') will *not* work
+opener.addheaders = [('User-Agent', 'Mozilla/5.0'),]
 
 class MainWidget(Qt.QMainWindow):
 	def __init__(self):
 		super(MainWidget, self).__init__()
 		self.addonsFile = os.path.expanduser(defines.LCURSE_ADDONS)
 		self.addWidgets()
+
+		self.addons = []
 		self.loadAddons()
+
+		self.availableAddons = []
+		self.loadAddonCatalog()
 
 	def addWidgets(self):
 		self.mainWidget = Qt.QWidget(self)
@@ -106,6 +119,14 @@ class MainWidget(Qt.QMainWindow):
 		self.addAction(actionCheck)
 		self.addAction(actionUpdateAll)
 		self.addAction(actionUpdate)
+
+		actionCatalogUpdate = Qt.QAction(self.tr("Update Catalog"), self)
+		actionCatalogUpdate.setStatusTip(self.tr("Retrieve a list of available addons"))
+		actionCatalogUpdate.triggered.connect(self.updateCatalog)
+		menuCatalog = menubar.addMenu(self.tr("Catalog"))
+		menuCatalog.addAction(actionCatalogUpdate)
+		toolbar = self.addToolBar(self.tr("Catalog"))
+		toolbar.addAction(actionCatalogUpdate)
 
 		self.addonList = Qt.QTableWidget(self.mainWidget)
 		self.addonList.setColumnCount(3)
@@ -219,6 +240,11 @@ class MainWidget(Qt.QMainWindow):
 		self.addonList.setItem(row, 1, Qt.QTableWidgetItem(uri))
 		self.addonList.setItem(row, 2, Qt.QTableWidgetItem(version))
 
+	def loadAddonCatalog(self):
+		if os.path.exists(defines.LCURSE_ADDON_CATALOG):
+			with file(defines.LCURSE_ADDON_CATALOG) as c:
+				self.availableAddons = json.load(c)
+
 	def loadAddons(self):
 		self.addonList.clearContents()
 		addons = None
@@ -246,18 +272,25 @@ class MainWidget(Qt.QMainWindow):
 			json.dump(addons, f)
 
 	def addAddon(self):
-		(url, ok) = Qt.QInputDialog.getText(self, self.tr("Add addon"), self.tr("Enter the curse URL to the addon:"), Qt.QLineEdit.Normal, "http://www.curse.com/addons/wow/atlas");
-		if ok == True and url != "":
+		addAddonDlg = addaddondlg.AddAddonDlg(self, self.availableAddons)
+		result = addAddonDlg.exec_()
+		if result == Qt.QDialog.Accepted:
 			name = ""
-			try:
-				print("retrieving addon informations")
-				response = opener.open(str(url))
-				soup = BeautifulSoup(response.read())
-				captions = soup.select(".caption span span span")
-				name = captions[0].string
-			except urllib2.HTTPError as e:
-				self.setRowColor(row, Qt.Qt.red)
-				print e
+			nameOrUrl = addAddonDlg.getText()
+			pieces = urlparse.urlparse(nameOrUrl)
+			if pieces.scheme != "" or pieces.netloc != "":
+				url = str(nameOrUrl)
+				try:
+					print("retrieving addon informations")
+					response = opener.open(url)
+					soup = BeautifulSoup(response.read())
+					captions = soup.select(".caption span span span")
+					name = captions[0].string
+				except urllib2.HTTPError as e:
+					print(e)
+			else:
+				name = nameOrUrl
+				url  = [ item[1] for item in self.availableAddons if item[0] == name ][0]
 
 			if name != "":
 				newrow = self.addonList.rowCount()
@@ -357,6 +390,17 @@ class MainWidget(Qt.QMainWindow):
 			updateDlg.updateFinished.connect(self.onUpdateFinished)
 			updateDlg.exec_()
 			self.saveAddons()
+
+	def onUpdateCatalogFinished(self, addons):
+		print("retrieved list of addons: %d" % (len(addons)))
+		self.availableAddons = addons
+		with open(defines.LCURSE_ADDON_CATALOG, "w") as c:
+			json.dump(self.availableAddons, c)
+
+	def updateCatalog(self):
+		updateCatalogDlg = waitdlg.UpdateCatalogDlg(self)
+		updateCatalogDlg.updateCatalogFinished.connect(self.onUpdateCatalogFinished)
+		updateCatalogDlg.exec_()
 
 	def start(self):
 		return self.exec_()
