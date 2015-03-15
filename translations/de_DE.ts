@@ -4,9 +4,14 @@
 <context>
     <name>CheckDlg</name>
     <message>
-        <location filename="modules/waitdlg.py" line="13"/>
+        <location filename="modules/waitdlg.py" line="16"/>
         <source>Verifying which addon needs an update...</source>
         <translation>Überprüfe welches Addon ein Update benötigt...</translation>
+    </message>
+    <message>
+        <location filename="modules/waitdlg.py" line="14"/>
+        <source>Verifying if the addon needs an update...</source>
+        <translation>Überprüfe ob das Addon ein Update benötigt...</translation>
     </message>
 </context>
 <context>
@@ -197,9 +202,14 @@ Bitte wähle das WoW Verzeichnis aus</translation>
 <context>
     <name>UpdateDlg</name>
     <message>
-        <location filename="modules/waitdlg.py" line="72"/>
+        <location filename="modules/waitdlg.py" line="78"/>
         <source>Updating the addons...</source>
-        <translation>Update die Addons...</translation>
+        <translation>Die Addons wird upgedatet...</translation>
+    </message>
+    <message>
+        <location filename="modules/waitdlg.py" line="76"/>
+        <source>Updating the addon...</source>
+        <translation>Das Addon wird upgedatet...</translation>
     </message>
 </context>
 </TS>

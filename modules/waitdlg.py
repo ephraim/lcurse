@@ -10,7 +10,10 @@ class CheckDlg(Qt.QDialog):
 	def __init__(self, parent, addons):
 		super(CheckDlg, self).__init__(parent)
 		layout = Qt.QVBoxLayout(self)
-		layout.addWidget(Qt.QLabel(self.tr("Verifying which addon needs an update...")))
+		if len(addons) == 1:
+			layout.addWidget(Qt.QLabel(self.tr("Verifying if the addon needs an update...")))
+		else:
+			layout.addWidget(Qt.QLabel(self.tr("Verifying which addon needs an update...")))
 		self.progress = Qt.QProgressBar(self)
 		self.progress.setRange(0, len(addons) - 1)
 		layout.addWidget(self.progress)
@@ -69,7 +72,10 @@ class UpdateDlg(Qt.QDialog):
 	def __init__(self, parent, addons):
 		super(UpdateDlg, self).__init__(parent)
 		layout = Qt.QVBoxLayout(self)
-		layout.addWidget(Qt.QLabel(self.tr("Updating the addons...")))
+		if len(addons) == 1:
+			layout.addWidget(Qt.QLabel(self.tr("Updating the addon...")))
+		else:
+			layout.addWidget(Qt.QLabel(self.tr("Updating the addons...")))
 		self.progress = Qt.QProgressBar(self)
 		self.progress.setRange(0, len(addons) - 1)
 		layout.addWidget(self.progress)
