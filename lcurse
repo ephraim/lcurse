@@ -5,7 +5,7 @@ import sys
 import signal
 import os
 
-from PyQt4 import Qt
+from PyQt5 import Qt
 
 rootDir = os.path.dirname(os.path.realpath(__file__))
 modulesDir = "%s/modules" % (rootDir)

@@ -6,20 +6,13 @@ import json
 import os
 import re
 
-from PyQt4 import Qt
-from bs4 import BeautifulSoup
-import zipfile
+from PyQt5 import Qt
 
-import cookielib, urllib2
 import preferences
 import waitdlg
 import defines
 
-opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
-# default User-Agent ('Python-urllib/2.6') will *not* work
-opener.addheaders = [('User-Agent', 'Mozilla/5.0'),]
-
-class MainWidget(Qt.QWidget):
+class MainWidget(Qt.QMainWindow):
 	def __init__(self):
 		super(MainWidget, self).__init__()
 		self.addonsFile = os.path.expanduser(defines.LCURSE_ADDONS)
@@ -27,76 +20,94 @@ class MainWidget(Qt.QWidget):
 		self.loadAddons()
 
 	def addWidgets(self):
-		box = Qt.QVBoxLayout(self)
+		self.mainWidget = Qt.QWidget(self)
+		box = Qt.QVBoxLayout(self.mainWidget)
 
-		menubar = Qt.QMenuBar()
+		menubar = self.menuBar()
+
+		actionLoad = Qt.QAction(self.tr("Load Addons"), self)
+		actionLoad.setShortcut("Ctrl+L")
+		actionLoad.setStatusTip(self.tr("Re/Load your addons configuration"))
+		actionLoad.triggered.connect(self.loadAddons)
+
+		actionSave = Qt.QAction(self.tr("Save Addons"), self)
+		actionSave.setShortcut("Ctrl+S")
+		actionSave.setStatusTip(self.tr("Save your addons configuration"))
+		actionSave.triggered.connect(self.saveAddons)
+
+		actionImport = Qt.QAction(self.tr("Import Addons"), self)
+		actionImport.setStatusTip(self.tr("Import Addons from WoW installation"))
+		actionImport.triggered.connect(self.importAddons)
+
+		actionPrefs = Qt.QAction(self.tr("Preferences"), self)
+		actionPrefs.setShortcut("Ctrl+P")
+		actionPrefs.setStatusTip(self.tr("Change preferences like wow install folder"))
+		actionPrefs.triggered.connect(self.openPreferences)
+
+		actionExit = Qt.QAction(self.tr("Exit"), self)
+		actionExit.setShortcuts(Qt.QKeySequence.Quit)
+		actionExit.setStatusTip(self.tr("Exit application"))
+		actionExit.triggered.connect(self.close)
+
 		menuFile = menubar.addMenu(self.tr("General"))
-		action = Qt.QAction(self.tr("Load Addons"), self)
-		action.setShortcut('Ctrl+L')
-		action.setStatusTip(self.tr("Re/Load your addons configuration"))
-		action.triggered.connect(self.loadAddons)
-		menuFile.addAction(action)
-		action = Qt.QAction(self.tr("Save Addons"), self)
-		action.setShortcut('Ctrl+S')
-		action.setStatusTip(self.tr("Save your addons configuration"))
-		action.triggered.connect(self.saveAddons)
-		menuFile.addAction(action)
-		action = Qt.QAction(self.tr("Import Addons"), self)
-		action.setStatusTip(self.tr("Import Addons from WoW installation"))
-		action.triggered.connect(self.importAddons)
-		menuFile.addAction(action)
-
+		menuFile.addAction(actionLoad)
+		menuFile.addAction(actionSave)
+		menuFile.addAction(actionImport)
 		menuFile.addSeparator()
-
-		action = Qt.QAction(self.tr("Preferences"), self)
-		action.setShortcut('Ctrl+P')
-		action.setStatusTip(self.tr("Change preferences like wow install folder"))
-		action.triggered.connect(self.openPreferences)
-		menuFile.addAction(action)
-
+		menuFile.addAction(actionPrefs)
 		menuFile.addSeparator()
+		menuFile.addAction(actionExit)
+		self.addAction(actionLoad)
+		self.addAction(actionSave)
+		self.addAction(actionPrefs)
+		self.addAction(actionExit)
 
-		action = Qt.QAction(self.tr("Exit"), self)
-		action.setShortcut('Ctrl+Q')
-		action.setStatusTip(self.tr("Exit application"))
-		self.connect(action, Qt.SIGNAL('triggered()'), Qt.SLOT('close()'))
-		menuFile.addAction(action)
+		actionCheckAll = Qt.QAction(self.tr("Check all addons"), self)
+		actionCheckAll.setShortcut('Ctrl+Shift+A')
+		actionCheckAll.setStatusTip(self.tr("Check all addons for new version"))
+		actionCheckAll.triggered.connect(self.checkAddonsForUpdate)
+
+		actionCheck = Qt.QAction(self.tr("Check addon"), self)
+		actionCheck.setShortcut('Ctrl+A')
+		actionCheck.setStatusTip(self.tr("Check currently selected addon for new version"))
+		actionCheck.triggered.connect(self.checkAddonForUpdate)
+
+		actionUpdateAll = Qt.QAction(self.tr("Update all addons"), self)
+		actionUpdateAll.setShortcut("Ctrl+Shift+U")
+		actionUpdateAll.setStatusTip(self.tr("Update all addons which need an update"))
+		actionUpdateAll.triggered.connect(self.updateAddons)
+
+		actionUpdate = Qt.QAction(self.tr("Update addon"), self)
+		actionUpdate.setShortcut("Ctrl+U")
+		actionUpdate.setStatusTip(self.tr("Update currently selected addons if needed"))
+		actionUpdate.triggered.connect(self.updateAddon)
+
+		actionAdd = Qt.QAction(self.tr("Add addon"), self)
+		actionAdd.setStatusTip(self.tr("Add a new addon"))
+		actionAdd.triggered.connect(self.addAddon)
+
+		actionRemove = Qt.QAction(self.tr("Remove addon"), self)
+		actionRemove.setStatusTip(self.tr("Remove currently selected addon"))
+		actionRemove.triggered.connect(self.removeAddon)
 
 		menuAddons = menubar.addMenu(self.tr("Addons"))
-		action = Qt.QAction(self.tr("Check all addons"), self)
-		action.setShortcut('Ctrl+Shift+A')
-		action.setStatusTip(self.tr("Check all addons for new version"))
-		action.triggered.connect(self.checkAddonsForUpdate)
-		menuAddons.addAction(action)
-		action = Qt.QAction(self.tr("Check addon"), self)
-		action.setShortcut('Ctrl+A')
-		action.setStatusTip(self.tr("Check currently selected addon for new version"))
-		action.triggered.connect(self.checkAddonForUpdate)
-		menuAddons.addAction(action)
+		menuAddons.addAction(actionCheckAll)
+		menuAddons.addAction(actionCheck)
 		menuAddons.addSeparator()
+		menuAddons.addAction(actionUpdateAll)
+		menuAddons.addAction(actionUpdate)
+		menuAddons.addSeparator()
+		menuAddons.addAction(actionAdd)
+		menuAddons.addAction(actionRemove)
+		toolbar = self.addToolBar(self.tr("Addons"))
+		toolbar.addAction(actionUpdateAll)
+		toolbar.addAction(actionAdd)
+		self.addAction(actionCheckAll)
+		self.addAction(actionCheck)
+		self.addAction(actionUpdateAll)
+		self.addAction(actionUpdate)
 
-		action = Qt.QAction(self.tr("Update all addons"), self)
-		action.setShortcut('Ctrl+Shift+U')
-		action.setStatusTip(self.tr("Update all addons which need an update"))
-		action.triggered.connect(self.updateAddons)
-		menuAddons.addAction(action)
-		action = Qt.QAction(self.tr("Update addon"), self)
-		action.setShortcut('Ctrl+U')
-		action.setStatusTip(self.tr("Update currently selected addons if needed"))
-		action.triggered.connect(self.updateAddon)
-		menuAddons.addAction(action)
-		menuAddons.addSeparator()
-		action = Qt.QAction(self.tr("Add addon"), self)
-		action.setStatusTip(self.tr("Add a new addon"))
-		action.triggered.connect(self.addAddon)
-		menuAddons.addAction(action)
-		action = Qt.QAction(self.tr("Remove addon"), self)
-		action.setStatusTip(self.tr("Remove currently selected addon"))
-		action.triggered.connect(self.removeAddon)
-		menuAddons.addAction(action)
-		menuAddons.addSeparator()
-
-		self.addonList = Qt.QTableWidget()
+		self.addonList = Qt.QTableWidget(self.mainWidget)
 		self.addonList.setColumnCount(3)
 		self.addonList.setHorizontalHeaderLabels(["Name", "Url", "Version"])
 
@@ -106,17 +117,14 @@ class MainWidget(Qt.QWidget):
 		self.move((screen.width()-size.width())/2, (screen.height()-size.height())/4)
 		self.setWindowTitle('WoW!Curse')
 
-		box.addWidget(menubar)
 		box.addWidget(self.addonList)
-
-	def resizeEvent(self, event):
-		print("oldsize: %s, newSize: %s" % (str(event.oldSize()), str(self.geometry().size())))
-		super(MainWidget, self).resizeEvent(event)
+		self.statusBar().showMessage(self.tr("Ready"))
+		self.setCentralWidget(self.mainWidget)
+		self.show()
 
 	def sizeHint(self):
 		width = self.addonList.sizeHintForColumn(0) + self.addonList.sizeHintForColumn(1) + self.addonList.sizeHintForColumn(2) + 63
-		size = Qt.QSize(width, 805)
-		print("sizehint: %s" % (str(size)))
+		size = Qt.QSize(width, 815)
 		return size
 
 	def adjustSize(self):
@@ -271,74 +279,79 @@ class MainWidget(Qt.QWidget):
 		self.addonList.item(row, 1).setBackground(color)
 		self.addonList.item(row, 2).setBackground(color)
 
-	def _checkAddonForUpdate(self, row):
-		try:
-			self.setRowColor(row, Qt.Qt.white)
-			response = opener.open(str(self.addonList.item(row, 1).text()) + "/download")
-			html = response.read()
-			with open("/tmp/response.txt", "w") as f:
-				f.write(html)
-			soup = BeautifulSoup(html)
-			lis = soup.select('#breadcrumbs-wrapper ul li span')
-			if len(lis) > 0:
-				version = lis[len(lis) - 1].string
-				if str(self.addonList.item(row, 2).text()) != version:
-					downloadLink = soup.select(".download-link")[0].get('data-href')
-					self.setRowColor(row, Qt.Qt.yellow)
-					self.addonList.item(row, 0).setData(Qt.Qt.UserRole, (version, downloadLink))
-		except urllib2.HTTPError as e:
-			self.setRowColor(row, Qt.Qt.red)
-			print(e)
+	def onCheckFinished(self, addon, result, data):
+		if result:
+			self.setRowColor(addon[0], Qt.Qt.yellow)
+			self.addonList.item(addon[0], 0).setData(Qt.Qt.UserRole, data)
+		elif data == None:
+			self.setRowColor(addon[0], Qt.Qt.red)
+		else:
+			self.setRowColor(addon[0], Qt.Qt.white)
 
 	def checkAddonForUpdate(self):
-		self._checkAddonForUpdate(self.addonList.currentRow())
-		self.saveAddons()
+		row = self.addonList.currentRow()
+		addons = []
+		name = self.addonList.item(row, 0).text()
+		uri = self.addonList.item(row, 1).text()
+		version = self.addonList.item(row, 2).text()
+		addons.append((row, name, uri, version))
+
+		checkDlg = waitdlg.CheckDlg(self, addons)
+		checkDlg.checkFinished.connect(self.onCheckFinished)
+		checkDlg.exec_()
 
 	def checkAddonsForUpdate(self):
-		waitDlg = waitdlg.WaitDlg(self, self.addonList.rowCount(), self._checkAddonForUpdate)
-		waitDlg.exec_()
-		self.saveAddons()
+		addons = []
+		for row in xrange(self.addonList.rowCount()):
+			name = self.addonList.item(row, 0).text()
+			uri = self.addonList.item(row, 1).text()
+			version = self.addonList.item(row, 2).text()
+			addons.append((row, name, uri, version))
 
-	def _updateAddon(self, row):
-		item = self.addonList.item(row, 0)
-		if item:
-			data = item.data(Qt.Qt.UserRole).toPyObject()
-			if data == None:
-				self._checkAddonForUpdate(row)
-				data = item.data(Qt.Qt.UserRole).toPyObject()
-				if data == None:
-					return
-		else:
-			print("could not retrieve item for row: %d" % (row))
-			return
-		try:
-			settings = Qt.QSettings()
-			print("updating addon %s to version %s ..." % (self.addonList.item(row, 0).text(), data[0]))
-			response = opener.open(data[1])
-			filename = "/tmp/%s" % (data[1].split('/')[-1])
-			dest = "%s/Interface/AddOns/" % (settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT).toString())
-			with open(filename, 'wb') as zipped:
-				zipped.write(response.read())
-			with zipfile.ZipFile(filename, "r") as z:
-				z.extractall(dest)
-			os.remove(filename)
+		checkDlg = waitdlg.CheckDlg(self, addons)
+		checkDlg.checkFinished.connect(self.onCheckFinished)
+		checkDlg.exec_()
 
-			self.addonList.setItem(row, 2, Qt.QTableWidgetItem(data[0]))
-			item.setData(Qt.Qt.UserRole, None)
-			self.setRowColor(row, Qt.Qt.green)
-		except Exception as e:
-			self.setRowColor(row, Qt.Qt.red)
-			print(e)
+	def onUpdateFinished(self, addon, result):
+		if result:
+			data = self.addonList.item(addon[0], 0).data(Qt.Qt.UserRole)
+			self.addonList.item(addon[0], 2).setText(data[0])
+			self.addonList.item(addon[0], 0).setData(Qt.Qt.UserRole, None)
+			self.setRowColor(addon[0], Qt.Qt.green)
 
 	def updateAddon(self):
 		row = self.addonList.currentRow()
-		self._updateAddon(row)
-		self.saveAddons()
+		self.checkAddonForUpdate()
+		addons = []
+		data = self.addonList.item(row, 0).data(Qt.Qt.UserRole)
+		if data:
+			name = self.addonList.item(row, 0).text()
+			uri = self.addonList.item(row, 1).text()
+			version = self.addonList.item(row, 2).text()
+			addons.append((row, name, uri, version, data))
+
+		if len(addons):
+			updateDlg = waitdlg.UpdateDlg(self, addons)
+			updateDlg.updateFinished.connect(self.onUpdateFinished)
+			updateDlg.exec_()
+			self.saveAddons()
 
 	def updateAddons(self):
-		waitDlg = waitdlg.WaitDlg(self, self.addonList.rowCount(), self._updateAddon)
-		waitDlg.exec_()
-		self.saveAddons()
+		self.checkAddonsForUpdate()
+		addons = []
+		for row in xrange(self.addonList.rowCount()):
+			data = self.addonList.item(row, 0).data(Qt.Qt.UserRole)
+			if data:
+				name = self.addonList.item(row, 0).text()
+				uri = self.addonList.item(row, 1).text()
+				version = self.addonList.item(row, 2).text()
+				addons.append((row, name, uri, version, data))
+
+		if len(addons):
+			updateDlg = waitdlg.UpdateDlg(self, addons)
+			updateDlg.updateFinished.connect(self.onUpdateFinished)
+			updateDlg.exec_()
+			self.saveAddons()
 
 	def start(self):
 		return self.exec_()

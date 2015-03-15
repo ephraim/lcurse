@@ -1,4 +1,4 @@
-from PyQt4 import Qt
+from PyQt5 import Qt
 import defines
 
 class PreferencesDlg(Qt.QDialog):
@@ -43,7 +43,7 @@ class PreferencesDlg(Qt.QDialog):
 
 	def getWowFolder(self):
 		settings = Qt.QSettings()
-		return settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT).toString()
+		return settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)
 
 	def setWowFolder(self, newfolder):
 		settings = Qt.QSettings()
