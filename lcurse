@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import sys
@@ -40,10 +40,20 @@ if __name__ == "__main__":
 	app = Qt.QApplication(sys.argv)
 	loadTranslators()
 
-	from modules import application
-	mainWidget = application.MainWidget()
+	#from modules import application
+	#mainWidget = application.MainWidget()
 	try:
-		mainWidget.show()
+		#mainWidget.show()
+
+		view = Qt.QQuickView()
+		engine = view.engine()
+		context = view.rootContext()
+
+		engine.quit.connect(app.quit)
+
+		view.setSource(Qt.QUrl("qml/main.qml"))
+		view.show()
+
 		ret = app.exec_()
 	except Exception as e:
 		print(str(e))
