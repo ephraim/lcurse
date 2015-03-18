@@ -4,6 +4,7 @@
 import sys
 import signal
 import os
+import json
 
 from PyQt5 import Qt
 
@@ -34,25 +35,66 @@ def loadTranslators():
 		app.installTranslator(translator)
 
 
+class AddonsModel(Qt.QAbstractListModel):
+	def __init__(self, addons):
+		super(AddonsModel, self).__init__()
+
+		# Roles entsprechen Integern, daher nach Qt's eigenen Roles erweitern
+		self.name_role = Qt.Qt.UserRole+1
+		self.uri_role = Qt.Qt.UserRole+2
+		self.version_role = Qt.Qt.UserRole+3
+
+		self.addons = addons
+
+	def roleNames(self):
+		return {self.name_role: "name", self.uri_role: "uri", self.version_role: "version" }
+
+	# Methode muss bei Ableitungen überschrieben werden
+	def rowCount(self, index=Qt.QModelIndex()):
+		return len(self.addons)
+
+
+	# Methode muss bei Ableitungen überschrieben werden
+	def data(self, index, role=Qt.Qt.DisplayRole):
+		# aus Index aktuelle Reihe lesen um Daten ansprechen zu können
+		i = index.row()
+
+		# auf eigene Roles prüfen und entsprechend reagieren
+		if role == self.name_role:
+			return self.addons[i]["name"]
+		elif role == self.uri_role:
+			return self.addons[i]["uri"]
+		elif role == self.version_role:
+			return self.addons[i]["version"]
+		else:
+			return None
+ 
+
 if __name__ == "__main__":
 	Qt.QCoreApplication.setApplicationName("lcurse")
 	Qt.QCoreApplication.setOrganizationName("None-Inc.")
 	app = Qt.QApplication(sys.argv)
 	loadTranslators()
 
-	#from modules import application
-	#mainWidget = application.MainWidget()
-	try:
-		#mainWidget.show()
+	def onObjectCreated(obj, url):
+		if url.fileName() == "main.qml" and obj == None:
+			sys.exit()
 
-		view = Qt.QQuickView()
-		engine = view.engine()
-		context = view.rootContext()
+	try:
+		addons = None
+		if os.path.exists("/home/ephraim/.lcurse/addons.json"):
+			with open("/home/ephraim/.lcurse/addons.json") as f:
+				addons = json.load(f)
+		addons = AddonsModel(addons)
+		engine = Qt.QQmlApplicationEngine()
+		context = engine.rootContext()
+
+		context.setContextProperty("addonsModel", addons)
 
 		engine.quit.connect(app.quit)
+		engine.objectCreated.connect(onObjectCreated)
 
-		view.setSource(Qt.QUrl("qml/main.qml"))
-		view.show()
+		engine.load(Qt.QUrl("qml/main.qml"))
 
 		ret = app.exec_()
 	except Exception as e:
