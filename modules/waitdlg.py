@@ -16,7 +16,9 @@ class CheckDlg(Qt.QDialog):
 		else:
 			layout.addWidget(Qt.QLabel(self.tr("Verifying which addon needs an update...")))
 		self.progress = Qt.QProgressBar(self)
-		self.progress.setRange(0, len(addons) - 1)
+		self.progress.setRange(0, len(addons))
+		self.progress.setValue(0)
+		self.progress.setFormat("%v / %m | %p%")
 		layout.addWidget(self.progress)
 		self.addons = addons
 
@@ -78,7 +80,9 @@ class UpdateDlg(Qt.QDialog):
 		else:
 			layout.addWidget(Qt.QLabel(self.tr("Updating the addons...")))
 		self.progress = Qt.QProgressBar(self)
-		self.progress.setRange(0, len(addons) - 1)
+		self.progress.setRange(0, len(addons))
+		self.progress.setValue(0)
+		self.progress.setFormat("%v / %m | %p%")
 		layout.addWidget(self.progress)
 		self.addons = addons
 
