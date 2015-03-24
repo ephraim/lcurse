@@ -7,13 +7,56 @@ ApplicationWindow {
     visible: true
 	width: 800
 	height: 600
-
 	ListView {
 		visible: true
-		anchors.fill: parent
+		id: addonsList
+		anchors {
+			fill: parent
+			margins: 10
+		}
+		displayMarginBeginning: 5
+		displayMarginEnd: 5
+		spacing: 4
 		model: addonsModel
-		delegate: Text {
-			text: name + "(" + version + "):" + uri
+		delegate: Component {
+			Rectangle {
+				anchors.margins: 5
+				border.width: 1
+				anchors.left: parent.left
+				anchors.right: parent.right
+				height: 55
+				Rectangle {
+					id: addonNameVersion
+					anchors.top: parent.top
+					anchors.left: parent.left
+					height: 35
+					Text {
+						id: addonName
+						anchors.top: parent.top
+						anchors.left: parent.left
+						anchors.leftMargin: 10
+						text: name
+						font.pointSize: 12
+					}
+					Text {
+						anchors.top: addonName.bottom
+						anchors.left: parent.left
+						anchors.leftMargin: 10
+						text: version
+						font.pointSize: 8
+					}
+				}
+				Rectangle {
+					anchors.top: addonNameVersion.bottom
+					anchors.left: parent.left
+					Text {
+						anchors.left: parent.left
+						anchors.leftMargin: 10
+						text: uri
+						font.pointSize: 12
+					}
+				}
+			}
 		}
 	}
 
