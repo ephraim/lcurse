@@ -5,11 +5,13 @@ import zipfile
 import defines
 import os
 import re
+from thread import start_new_thread
 
 class CheckDlg(Qt.QDialog):
 	checkFinished = Qt.pyqtSignal(Qt.QVariant, bool, Qt.QVariant)
 	def __init__(self, parent, addons):
 		super(CheckDlg, self).__init__(parent)
+		settings = Qt.QSettings()
 		layout = Qt.QVBoxLayout(self)
 		if len(addons) == 1:
 			layout.addWidget(Qt.QLabel(self.tr("Verifying if the addon needs an update...")))
@@ -21,18 +23,25 @@ class CheckDlg(Qt.QDialog):
 		self.progress.setFormat("%v / %m | %p%")
 		layout.addWidget(self.progress)
 		self.addons = addons
+		self.maxThreads = settings.value(defines.LCURSE_MAXTHREADS_KEY, defines.LCURSE_MAXTHREADS_DEFAULT)
+		self.sem = Qt.QSemaphore(self.maxThreads)
 
-	def exec_(self):
+	def startWorkerThreads(self):
 		self.threads = []
 		for addon in self.addons:
-			idx = len(self.threads)
-			self.threads.append(CheckWorker(addon))
-			self.threads[idx].checkFinished.connect(self.onCheckFinished)
-			self.threads[idx].start()
+			self.sem.acquire()
+			thread = CheckWorker(addon)
+			thread.checkFinished.connect(self.onCheckFinished)
+			thread.start()
+			self.threads.append(thread)	
+
+	def exec_(self):
+		start_new_thread(self.startWorkerThreads, ())
 		super(CheckDlg, self).exec_()
 
 	@Qt.pyqtSlot(int, Qt.QVariant)
 	def onCheckFinished(self, addon, needsUpdate, updateData):
+		self.sem.release()
 		value = self.progress.value() + 1
 		self.progress.setValue(value)
 		self.checkFinished.emit(addon, needsUpdate, updateData)
@@ -74,6 +83,7 @@ class UpdateDlg(Qt.QDialog):
 	updateFinished = Qt.pyqtSignal(Qt.QVariant, bool)
 	def __init__(self, parent, addons):
 		super(UpdateDlg, self).__init__(parent)
+		settings = Qt.QSettings()
 		layout = Qt.QVBoxLayout(self)
 		if len(addons) == 1:
 			layout.addWidget(Qt.QLabel(self.tr("Updating the addon...")))
@@ -85,14 +95,20 @@ class UpdateDlg(Qt.QDialog):
 		self.progress.setFormat("%v / %m | %p%")
 		layout.addWidget(self.progress)
 		self.addons = addons
+		self.maxThreads = settings.value(defines.LCURSE_MAXTHREADS_KEY, defines.LCURSE_MAXTHREADS_DEFAULT)
+		self.sem = Qt.QSemaphore(self.maxThreads)
 
-	def exec_(self):
+	def startWorkerThreads(self):
 		self.threads = []
 		for addon in self.addons:
-			idx = len(self.threads)
-			self.threads.append(UpdateWorker(addon))
-			self.threads[idx].updateFinished.connect(self.onUpdateFinished)
-			self.threads[idx].start()
+			self.sem.acquire()
+			thread = UpdateWorker(addon)
+			thread.updateFinished.connect(self.onUpdateFinished)
+			thread.start()
+			self.threads.append(thread)	
+
+	def exec_(self):
+		start_new_thread(self.startWorkerThreads, ())
 		super(UpdateDlg, self).exec_()
 
 	@Qt.pyqtSlot(int, Qt.QVariant)
@@ -142,18 +158,25 @@ class UpdateCatalogDlg(Qt.QDialog):
 		layout.addWidget(Qt.QLabel(self.tr("Updating list of available Addons...")))
 		self.progress = Qt.QProgressBar(self)
 		self.progress.setRange(0, 0)
+		self.progress.setValue(0)
 		layout.addWidget(self.progress)
 
 	def exec_(self):
 		self.thread = UpdateCatalogWorker()
 		self.thread.updateCatalogFinished.connect(self.onUpdateCatalogFinished)
+		self.thread.retrievedLastpage.connect(self.setMaxProgress)
 		self.thread.progress.connect(self.onProgress)
 		self.thread.start()
 		super(UpdateCatalogDlg, self).exec_()
 
-	def onProgress(self, curval, maxval, foundAddons):
+	@Qt.pyqtSlot(int)
+	def setMaxProgress(self, maxval):
 		self.progress.setRange(0, maxval)
-		self.progress.setValue(curval)
+
+	@Qt.pyqtSlot(int)
+	def onProgress(self, foundAddons):
+		value = self.progress.value() + 1
+		self.progress.setValue(value)
 		self.progress.setFormat("%%p%% - found Addons: %d" % (foundAddons))
 
 	@Qt.pyqtSlot(Qt.QVariant)
@@ -163,39 +186,60 @@ class UpdateCatalogDlg(Qt.QDialog):
 
 class UpdateCatalogWorker(Qt.QThread):
 	updateCatalogFinished = Qt.pyqtSignal(Qt.QVariant)
-	progress = Qt.pyqtSignal(int, int, int)
+	retrievedLastpage = Qt.pyqtSignal(int)
+	progress = Qt.pyqtSignal(int)
 	def __init__(self):
 		super(UpdateCatalogWorker, self).__init__()
+		settings = Qt.QSettings()
 		self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
 		# default User-Agent ('Python-urllib/2.6') will *not* work
 		self.opener.addheaders = [('User-Agent', 'Mozilla/5.0'),]
+		self.addons = []
+		self.addonsMutex = Qt.QMutex()
+		self.maxThreads = settings.value(defines.LCURSE_MAXTHREADS_KEY, defines.LCURSE_MAXTHREADS_DEFAULT)
+		self.sem = Qt.QSemaphore(self.maxThreads)
 
 	# pager => "Page 1 of 178"
 	def parsePager(self, pager):
 		m = re.search("(\d+) of (\d+)", pager)
 		if m == None:
 			raise Exception("pager is crap")
-		return (int(m.group(1)), int(m.group(2)))
+		return int(m.group(2))
+
+	def retrievePartialListOfAddons(self, page):
+		response = self.opener.open("http://www.curse.com/addons/wow?page=%d" % (page))
+		soup = BeautifulSoup(response.read())
+
+		pager = soup.select("span .pager-display")
+		lastpage = self.parsePager(pager[0].string)
+
+		links = soup.select("li .title h4 a") # li .title h4 a")
+		self.addonsMutex.lock()
+		for link in links:
+			self.addons.append( [ link.string, "http://www.curse.com%s" % (link.get("href")) ])
+		self.progress.emit(len(self.addons))
+		self.addonsMutex.unlock()
+
+		self.sem.release()
+
+		return lastpage
 
 	def retrieveListOfAddons(self):
 		page = 1
 		lastpage = 1
+		self.sem.acquire()
+		lastpage = self.retrievePartialListOfAddons(page)
+		self.retrievedLastpage.emit(lastpage)
 
-		addons = []
 		while page <= lastpage:
-			response = self.opener.open("http://www.curse.com/addons/wow?page=%d" % (page))
-			soup = BeautifulSoup(response.read())
-
-			links = soup.select("li .title h4 a") # li .title h4 a")
-			for link in links:
-				addons.append( [ link.string, "http://www.curse.com%s" % (link.get("href")) ])
-
-			pager = soup.select("span .pager-display")
-			(page, lastpage) = self.parsePager(pager[0].string)
+			self.sem.acquire()
+			start_new_thread(self.retrievePartialListOfAddons, (page,))
 			page += 1
-			self.progress.emit(page, lastpage, len(addons))
-		return addons
 
 	def run(self):
-		result = self.retrieveListOfAddons()
-		self.updateCatalogFinished.emit(result)
+		self.retrieveListOfAddons()
+
+		# wait until all worker are done
+		self.sem.acquire(self.maxThreads)
+
+		self.updateCatalogFinished.emit(self.addons)

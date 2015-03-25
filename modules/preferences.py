@@ -4,6 +4,7 @@ import defines
 class PreferencesDlg(Qt.QDialog):
 	def __init__(self, parent):
 		super(PreferencesDlg, self).__init__(parent)
+		self.settings = Qt.QSettings()
 
 		layout = Qt.QVBoxLayout(self)
 
@@ -15,6 +16,12 @@ class PreferencesDlg(Qt.QDialog):
 		btn.clicked.connect(self.browseForWoWFolder)
 		folderlayout.addWidget(btn)
 		layout.addLayout(folderlayout)
+
+		layout.addWidget(Qt.QLabel(self.tr("Max. concurrent Threads:"), self))
+		self.maxthreads = Qt.QSpinBox(self)
+		self.maxthreads.setMinimum(1)
+		self.maxthreads.setValue(self.getMaxThreads())
+		layout.addWidget(self.maxthreads)
 
 		bottom = Qt.QHBoxLayout()
 		bottom.addSpacing(100)
@@ -41,14 +48,19 @@ class PreferencesDlg(Qt.QDialog):
 			else:
 				Qt.QMessageBox.warning(self, self.tr("Not Wow-Folder"), self.tr("The selected folder wasn't an installation directory of wow.\nPlease select the wow folder"))
 
+	def getMaxThreads(self):
+		return int(self.settings.value(defines.LCURSE_MAXTHREADS_KEY, defines.LCURSE_MAXTHREADS_DEFAULT))
+
+	def setMaxThreads(self, newMaxThreads):
+		return self.settings.setValue(defines.LCURSE_MAXTHREADS_KEY, int(newMaxThreads))
+
 	def getWowFolder(self):
-		settings = Qt.QSettings()
-		return settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)
+		return self.settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)
 
 	def setWowFolder(self, newfolder):
-		settings = Qt.QSettings()
-		return settings.setValue(defines.WOW_FOLDER_KEY, newfolder)
+		return self.settings.setValue(defines.WOW_FOLDER_KEY, newfolder)
 
 	def accept(self):
 		self.setWowFolder(self.wowInstallFolder.text())
+		self.setMaxThreads(self.maxthreads.value())
 		super(PreferencesDlg, self).accept()
