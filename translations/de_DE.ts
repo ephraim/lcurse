@@ -140,11 +140,6 @@
         <translation>Entfernt das aktuell selektierte Addon</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="249"/>
-        <source>Enter the curse URL to the addon:</source>
-        <translation type="obsolete">Gib die Curse URL zu den Addon an:</translation>
-    </message>
-    <message>
         <location filename="modules/application.py" line="306"/>
         <source>Remove selected addon</source>
         <translation>Entferne das selektierte Addon</translation>
@@ -243,6 +238,11 @@ Bitte wähle das WoW Verzeichnis aus</translation>
         <location filename="modules/waitdlg.py" line="158"/>
         <source>Updating list of available Addons...</source>
         <translation>Die Liste der verfügbaren Addons wird upgedatet...</translation>
+    </message>
+    <message>
+        <location filename="modules/waitdlg.py" line="180"/>
+        <source>%%p%% - found Addons: %d</source>
+        <translation>%%p%% - gefundene Addons: %d</translation>
     </message>
 </context>
 <context>
