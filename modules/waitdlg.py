@@ -23,7 +23,7 @@ class CheckDlg(Qt.QDialog):
 		self.progress.setFormat("%v / %m | %p%")
 		layout.addWidget(self.progress)
 		self.addons = addons
-		self.maxThreads = settings.value(defines.LCURSE_MAXTHREADS_KEY, defines.LCURSE_MAXTHREADS_DEFAULT)
+		self.maxThreads = int(settings.value(defines.LCURSE_MAXTHREADS_KEY, defines.LCURSE_MAXTHREADS_DEFAULT))
 		self.sem = Qt.QSemaphore(self.maxThreads)
 
 	def startWorkerThreads(self):
@@ -95,7 +95,7 @@ class UpdateDlg(Qt.QDialog):
 		self.progress.setFormat("%v / %m | %p%")
 		layout.addWidget(self.progress)
 		self.addons = addons
-		self.maxThreads = settings.value(defines.LCURSE_MAXTHREADS_KEY, defines.LCURSE_MAXTHREADS_DEFAULT)
+		self.maxThreads = int(settings.value(defines.LCURSE_MAXTHREADS_KEY, defines.LCURSE_MAXTHREADS_DEFAULT))
 		self.sem = Qt.QSemaphore(self.maxThreads)
 
 	def startWorkerThreads(self):
@@ -196,7 +196,7 @@ class UpdateCatalogWorker(Qt.QThread):
 		self.opener.addheaders = [('User-Agent', 'Mozilla/5.0'),]
 		self.addons = []
 		self.addonsMutex = Qt.QMutex()
-		self.maxThreads = settings.value(defines.LCURSE_MAXTHREADS_KEY, defines.LCURSE_MAXTHREADS_DEFAULT)
+		self.maxThreads = int(settings.value(defines.LCURSE_MAXTHREADS_KEY, defines.LCURSE_MAXTHREADS_DEFAULT))
 		self.sem = Qt.QSemaphore(self.maxThreads)
 
 	# pager => "Page 1 of 178"
@@ -229,6 +229,7 @@ class UpdateCatalogWorker(Qt.QThread):
 		lastpage = 1
 		self.sem.acquire()
 		lastpage = self.retrievePartialListOfAddons(page)
+		page += 1
 		self.retrievedLastpage.emit(lastpage)
 
 		while page <= lastpage:
