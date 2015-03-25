@@ -20,6 +20,7 @@ class PreferencesDlg(Qt.QDialog):
 		layout.addWidget(Qt.QLabel(self.tr("Max. concurrent Threads:"), self))
 		self.maxthreads = Qt.QSpinBox(self)
 		self.maxthreads.setMinimum(1)
+		self.maxthreads.setMaximum(1000)
 		self.maxthreads.setValue(self.getMaxThreads())
 		layout.addWidget(self.maxthreads)
 
