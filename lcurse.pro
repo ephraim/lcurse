@@ -1,4 +1,5 @@
 SOURCES += modules/application.py \
 		   modules/preferences.py \
-		   modules/waitdlg.py
+		   modules/waitdlg.py \
+		   modules/addaddondlg.py
 TRANSLATIONS += translations/de_DE.ts

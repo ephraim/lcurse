@@ -2,6 +2,24 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="de_DE" sourcelanguage="de_DE">
 <context>
+    <name>AddAddonDlg</name>
+    <message>
+        <location filename="modules/addaddondlg.py" line="7"/>
+        <source>Type name or url of the addon you want to add:</source>
+        <translation>Gib den Namen oder die URL des Addons ein, welches du installieren möchtest:</translation>
+    </message>
+    <message>
+        <location filename="modules/addaddondlg.py" line="21"/>
+        <source>No addon catalog data</source>
+        <translation>Keine Addonkatalog Daten</translation>
+    </message>
+    <message>
+        <location filename="modules/addaddondlg.py" line="21"/>
+        <source>You haven&apos;t updated the available addons catalog, so you need to insert a URL for the addon you want to add.</source>
+        <translation>Du hast den Katalog von verfügbaren Addons noch nie upgedatet. Deswegen musst du die URL des Addons angeben, welches du installieren willst.</translation>
+    </message>
+</context>
+<context>
     <name>CheckDlg</name>
     <message>
         <location filename="modules/waitdlg.py" line="19"/>
