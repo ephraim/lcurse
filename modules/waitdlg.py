@@ -1,11 +1,12 @@
 from PyQt5 import Qt
 from bs4 import BeautifulSoup
-import cookielib, urllib2
+from urllib.request import build_opener, HTTPCookieProcessor, HTTPError
+from http import cookiejar
 import zipfile
 import defines
 import os
 import re
-from thread import start_new_thread
+from _thread import start_new_thread
 
 class CheckDlg(Qt.QDialog):
 	checkFinished = Qt.pyqtSignal(Qt.QVariant, bool, Qt.QVariant)
@@ -53,7 +54,7 @@ class CheckWorker(Qt.QThread):
 	def __init__(self, addon):
 		super(CheckWorker, self).__init__()
 		self.addon = addon
-		self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
+		self.opener = build_opener(HTTPCookieProcessor(cookiejar.CookieJar()))
 		# default User-Agent ('Python-urllib/2.6') will *not* work
 		self.opener.addheaders = [('User-Agent', 'Mozilla/5.0'),]
 
@@ -61,8 +62,6 @@ class CheckWorker(Qt.QThread):
 		try:
 			response = self.opener.open(str(self.addon[2]) + "/download")
 			html = response.read()
-			with open("/tmp/response.txt", "w") as f:
-				f.write(html)
 			soup = BeautifulSoup(html)
 			lis = soup.select('#breadcrumbs-wrapper ul li span')
 			if len(lis) > 0:
@@ -71,7 +70,7 @@ class CheckWorker(Qt.QThread):
 					downloadLink = soup.select(".download-link")[0].get('data-href')
 					return (True, (version, downloadLink))
 			return (False, ("", ""))
-		except urllib2.HTTPError as e:
+		except HTTPError as e:
 			print(e)
 		return (False, None)
 
@@ -124,7 +123,7 @@ class UpdateWorker(Qt.QThread):
 	def __init__(self, addon):
 		super(UpdateWorker, self).__init__()
 		self.addon = addon
-		self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
+		self.opener = build_opener(HTTPCookieProcessor(cookiejar.CookieJar()))
 		# default User-Agent ('Python-urllib/2.6') will *not* work
 		self.opener.addheaders = [('User-Agent', 'Mozilla/5.0'),]
 
@@ -191,7 +190,7 @@ class UpdateCatalogWorker(Qt.QThread):
 	def __init__(self):
 		super(UpdateCatalogWorker, self).__init__()
 		settings = Qt.QSettings()
-		self.opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
+		self.opener = build_opener(HTTPCookieProcessor(cookiejar.CookieJar()))
 		# default User-Agent ('Python-urllib/2.6') will *not* work
 		self.opener.addheaders = [('User-Agent', 'Mozilla/5.0'),]
 		self.addons = []

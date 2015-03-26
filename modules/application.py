@@ -5,8 +5,10 @@ import sys
 import json
 import os
 import re
-import urlparse
-import cookielib, urllib2, urllib
+from urllib.parse import urlparse
+import urllib
+from urllib.request import build_opener, HTTPCookieProcessor
+from http import cookiejar
 from bs4 import BeautifulSoup
 
 from PyQt5 import Qt
@@ -16,7 +18,7 @@ import addaddondlg
 import waitdlg
 import defines
 
-opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookielib.CookieJar()))
+opener = build_opener(HTTPCookieProcessor(cookiejar.CookieJar()))
 # default User-Agent ('Python-urllib/2.6') will *not* work
 opener.addheaders = [('User-Agent', 'Mozilla/5.0'),]
 
@@ -212,7 +214,7 @@ class MainWidget(Qt.QMainWindow):
 
 	def importAddons(self):
 		settings = Qt.QSettings()
-		parent = "%s/Interface/AddOns" % (settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT).toString())
+		parent = "%s/Interface/AddOns" % (str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)))
 		contents = os.listdir(parent)
 		for item in contents:
 			itemDir = "%s/%s" % (parent, item)
@@ -242,14 +244,14 @@ class MainWidget(Qt.QMainWindow):
 
 	def loadAddonCatalog(self):
 		if os.path.exists(defines.LCURSE_ADDON_CATALOG):
-			with file(defines.LCURSE_ADDON_CATALOG) as c:
+			with open(defines.LCURSE_ADDON_CATALOG) as c:
 				self.availableAddons = json.load(c)
 
 	def loadAddons(self):
 		self.addonList.clearContents()
 		addons = None
 		if os.path.exists(self.addonsFile):
-			with file(self.addonsFile) as f:
+			with open(self.addonsFile) as f:
 				addons = json.load(f)
 		if addons != None:
 			self.addonList.setRowCount(len(addons))
@@ -262,13 +264,13 @@ class MainWidget(Qt.QMainWindow):
 
 	def saveAddons(self):
 		addons = []
-		for row in xrange(self.addonList.rowCount()):
+		for row in iter(range(self.addonList.rowCount())):
 			addons.append(dict(
 					name=str(self.addonList.item(row, 0).text()),
 					uri=str(self.addonList.item(row, 1).text()),
 					version=str(self.addonList.item(row, 2).text())
 				))
-		with file(self.addonsFile, "w") as f:
+		with open(self.addonsFile, "w") as f:
 			json.dump(addons, f)
 
 	def addAddon(self):
@@ -277,7 +279,7 @@ class MainWidget(Qt.QMainWindow):
 		if result == Qt.QDialog.Accepted:
 			name = ""
 			nameOrUrl = addAddonDlg.getText()
-			pieces = urlparse.urlparse(nameOrUrl)
+			pieces = urlparse(nameOrUrl)
 			if pieces.scheme != "" or pieces.netloc != "":
 				url = str(nameOrUrl)
 				try:
@@ -335,7 +337,7 @@ class MainWidget(Qt.QMainWindow):
 
 	def checkAddonsForUpdate(self):
 		addons = []
-		for row in xrange(self.addonList.rowCount()):
+		for row in iter(range(self.addonList.rowCount())):
 			name = self.addonList.item(row, 0).text()
 			uri = self.addonList.item(row, 1).text()
 			version = self.addonList.item(row, 2).text()
@@ -377,7 +379,7 @@ class MainWidget(Qt.QMainWindow):
 	def updateAddons(self):
 		self.checkAddonsForUpdate()
 		addons = []
-		for row in xrange(self.addonList.rowCount()):
+		for row in iter(range(self.addonList.rowCount())):
 			data = self.addonList.item(row, 0).data(Qt.Qt.UserRole)
 			if data:
 				name = self.addonList.item(row, 0).text()
