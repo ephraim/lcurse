@@ -25,6 +25,7 @@ opener.addheaders = [('User-Agent', 'Mozilla/5.0'),]
 class MainWidget(Qt.QMainWindow):
 	def __init__(self):
 		super(MainWidget, self).__init__()
+		self.ensureLCurseFolder()
 		self.addonsFile = os.path.expanduser(defines.LCURSE_ADDONS)
 		self.addWidgets()
 
@@ -144,6 +145,15 @@ class MainWidget(Qt.QMainWindow):
 		self.statusBar().showMessage(self.tr("Ready"))
 		self.setCentralWidget(self.mainWidget)
 		self.show()
+
+	def ensureLCurseFolder(self):
+		if not os.path.exists(defines.LCURSE_FOLDER):
+			os.mkdir(defines.LCURSE_FOLDER)
+		elif not os.path.isdir(defines.LCURSE_FOLDER):
+			e = self.tr("There is an entry \".lcurse\" in your home directory which is neither a folder nor a link to a folder. Exiting!")
+			Qt.QMessageBox.critical(None, self.tr("lcurse-folder not a folder"), e)
+			print(e)
+			raise
 
 	def sizeHint(self):
 		width = self.addonList.sizeHintForColumn(0) + self.addonList.sizeHintForColumn(1) + self.addonList.sizeHintForColumn(2) + 63
@@ -270,6 +280,7 @@ class MainWidget(Qt.QMainWindow):
 					uri=str(self.addonList.item(row, 1).text()),
 					version=str(self.addonList.item(row, 2).text())
 				))
+
 		with open(self.addonsFile, "w") as f:
 			json.dump(addons, f)
 
