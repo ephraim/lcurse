@@ -22,12 +22,12 @@
 <context>
     <name>CheckDlg</name>
     <message>
-        <location filename="modules/waitdlg.py" line="19"/>
+        <location filename="modules/waitdlg.py" line="20"/>
         <source>Verifying which addon needs an update...</source>
         <translation>Überprüfe welches Addon ein Update benötigt...</translation>
     </message>
     <message>
-        <location filename="modules/waitdlg.py" line="17"/>
+        <location filename="modules/waitdlg.py" line="18"/>
         <source>Verifying if the addon needs an update...</source>
         <translation>Überprüfe ob das Addon ein Update benötigt...</translation>
     </message>
@@ -35,156 +35,166 @@
 <context>
     <name>MainWidget</name>
     <message>
-        <location filename="modules/application.py" line="41"/>
+        <location filename="modules/application.py" line="44"/>
         <source>Load Addons</source>
         <translation>Addons Laden</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="43"/>
+        <location filename="modules/application.py" line="46"/>
         <source>Re/Load your addons configuration</source>
         <translation>Lade deine Addon Konfiguration</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="46"/>
+        <location filename="modules/application.py" line="49"/>
         <source>Save Addons</source>
         <translation>Addons Speichern</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="48"/>
+        <location filename="modules/application.py" line="51"/>
         <source>Save your addons configuration</source>
         <translation>Speichere deine Addons Konfiguration</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="55"/>
+        <location filename="modules/application.py" line="58"/>
         <source>Preferences</source>
         <translation>Einstellungen</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="57"/>
+        <location filename="modules/application.py" line="60"/>
         <source>Change preferences like wow install folder</source>
         <translation>Ändere Einstellungen wie z.B. WoW Installations Verzeichnis</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="60"/>
+        <location filename="modules/application.py" line="63"/>
         <source>Exit</source>
         <translation>Beenden</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="62"/>
+        <location filename="modules/application.py" line="65"/>
         <source>Exit application</source>
         <translation>Beende die Anwendung</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="115"/>
+        <location filename="modules/application.py" line="118"/>
         <source>Addons</source>
         <translation>Addons</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="78"/>
+        <location filename="modules/application.py" line="81"/>
         <source>Check all addons</source>
         <translation>Alle Addons überprüfen</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="80"/>
+        <location filename="modules/application.py" line="83"/>
         <source>Check all addons for new version</source>
         <translation>Überprüfe alle Addons auf verfügbare neuere Version</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="83"/>
+        <location filename="modules/application.py" line="86"/>
         <source>Check addon</source>
         <translation>Aktuelles Addon überprüfen</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="85"/>
+        <location filename="modules/application.py" line="88"/>
         <source>Check currently selected addon for new version</source>
         <translation>Überprüfe das aktuell selektierte Addon ob eine neue Version verfügbar ist</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="88"/>
+        <location filename="modules/application.py" line="91"/>
         <source>Update all addons</source>
         <translation>Alle Addons updaten</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="90"/>
+        <location filename="modules/application.py" line="93"/>
         <source>Update all addons which need an update</source>
         <translation>Update alle Addons, für die ein Update zur Verfügung steht</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="93"/>
+        <location filename="modules/application.py" line="96"/>
         <source>Update addon</source>
         <translation>Aktuelles Addon updaten</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="95"/>
+        <location filename="modules/application.py" line="98"/>
         <source>Update currently selected addons if needed</source>
         <translation>Update das aktuell selektierte Addon wenn eine neuere Version verfügbar ist</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="98"/>
+        <location filename="modules/application.py" line="101"/>
         <source>Add addon</source>
         <translation>Addon hinzufügen</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="99"/>
+        <location filename="modules/application.py" line="102"/>
         <source>Add a new addon</source>
         <translation>Füge ein neues Addon hinzu</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="102"/>
+        <location filename="modules/application.py" line="105"/>
         <source>Remove addon</source>
         <translation>Addon entfernen</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="103"/>
+        <location filename="modules/application.py" line="106"/>
         <source>Remove currently selected addon</source>
         <translation>Entfernt das aktuell selektierte Addon</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="306"/>
+        <location filename="modules/application.py" line="319"/>
         <source>Remove selected addon</source>
         <translation>Entferne das selektierte Addon</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="306"/>
+        <location filename="modules/application.py" line="319"/>
         <source>Do you really want to remove the following addon?
 %s</source>
         <translation>Willst du wirklich das folgende Addon entfernen?
 %s</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="65"/>
+        <location filename="modules/application.py" line="68"/>
         <source>General</source>
         <translation>Allgemein</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="51"/>
+        <location filename="modules/application.py" line="54"/>
         <source>Import Addons</source>
         <translation>Addons importieren</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="52"/>
+        <location filename="modules/application.py" line="55"/>
         <source>Import Addons from WoW installation</source>
         <translation>Importiere Addons aus der WoW Installation</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="142"/>
+        <location filename="modules/application.py" line="145"/>
         <source>Ready</source>
         <translation>Fertig</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="123"/>
+        <location filename="modules/application.py" line="126"/>
         <source>Update Catalog</source>
         <translation>Katalog updaten</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="124"/>
+        <location filename="modules/application.py" line="127"/>
         <source>Retrieve a list of available addons</source>
         <translation>Erhalte eine Liste der verfügbaren Addons</translation>
     </message>
     <message>
-        <location filename="modules/application.py" line="128"/>
+        <location filename="modules/application.py" line="131"/>
         <source>Catalog</source>
         <translation>Katalog</translation>
+    </message>
+    <message>
+        <location filename="modules/application.py" line="154"/>
+        <source>lcurse-folder not a folder</source>
+        <translation>lcurse-Ordner ist kein Ordner</translation>
+    </message>
+    <message>
+        <location filename="modules/application.py" line="153"/>
+        <source>There is an entry &quot;.lcurse&quot; in your home directory which is neither a folder nor a link to a folder. Exiting!</source>
+        <translation>Es gibt einen &quot;.lcurse&quot; Eintrag in deinem Home Verzeichnis, der weder ein Verzeichnis noch ein Link auf ein Verzeichnis ist. lCurse wird beendet!</translation>
     </message>
 </context>
 <context>
@@ -235,12 +245,12 @@ Bitte wähle das WoW Verzeichnis aus</translation>
 <context>
     <name>UpdateCatalogDlg</name>
     <message>
-        <location filename="modules/waitdlg.py" line="158"/>
+        <location filename="modules/waitdlg.py" line="157"/>
         <source>Updating list of available Addons...</source>
         <translation>Die Liste der verfügbaren Addons wird upgedatet...</translation>
     </message>
     <message>
-        <location filename="modules/waitdlg.py" line="180"/>
+        <location filename="modules/waitdlg.py" line="179"/>
         <source>%%p%% - found Addons: %d</source>
         <translation>%%p%% - gefundene Addons: %d</translation>
     </message>
@@ -248,12 +258,12 @@ Bitte wähle das WoW Verzeichnis aus</translation>
 <context>
     <name>UpdateDlg</name>
     <message>
-        <location filename="modules/waitdlg.py" line="91"/>
+        <location filename="modules/waitdlg.py" line="90"/>
         <source>Updating the addons...</source>
         <translation>Die Addons wird upgedatet...</translation>
     </message>
     <message>
-        <location filename="modules/waitdlg.py" line="89"/>
+        <location filename="modules/waitdlg.py" line="88"/>
         <source>Updating the addon...</source>
         <translation>Das Addon wird upgedatet...</translation>
     </message>
