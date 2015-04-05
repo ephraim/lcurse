@@ -45,7 +45,7 @@ class PreferencesDlg(Qt.QDialog):
 		if selectedDir != "":
 			dir = Qt.QDir("%s/Interface/AddOns" % (selectedDir))
 			if dir.exists():
-				self.wowInstallFolder.setText(dir)
+				self.wowInstallFolder.setText(selectedDir)
 			else:
 				Qt.QMessageBox.warning(self, self.tr("Not Wow-Folder"), self.tr("The selected folder wasn't an installation directory of wow.\nPlease select the wow folder"))
 
