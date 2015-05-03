@@ -132,10 +132,10 @@ class MainWidget(Qt.QMainWindow):
 		toolbar.addAction(actionCatalogUpdate)
 
 		self.addonList = Qt.QTableWidget(self.mainWidget)
-		self.addonList.setColumnCount(3)
-		self.addonList.setHorizontalHeaderLabels(["Name", "Url", "Version"])
+		self.addonList.setColumnCount(4)
+		self.addonList.setHorizontalHeaderLabels(["Name", "Url", "Version", "Allow Beta"])
 
-		self.resize(830, 805)
+		self.resize(1030, 815)
 		screen = Qt.QDesktopWidget().screenGeometry()
 		size = self.geometry()
 		self.move((screen.width()-size.width())/2, (screen.height()-size.height())/4)
@@ -145,6 +145,9 @@ class MainWidget(Qt.QMainWindow):
 		self.statusBar().showMessage(self.tr("Ready"))
 		self.setCentralWidget(self.mainWidget)
 		self.show()
+
+#	def resizeEvent(self, event):
+#		print(self.geometry())
 
 	def ensureLCurseFolder(self):
 		if not os.path.exists(defines.LCURSE_FOLDER):
@@ -156,7 +159,7 @@ class MainWidget(Qt.QMainWindow):
 			raise
 
 	def sizeHint(self):
-		width = self.addonList.sizeHintForColumn(0) + self.addonList.sizeHintForColumn(1) + self.addonList.sizeHintForColumn(2) + 63
+		width = self.addonList.sizeHintForColumn(0) + self.addonList.sizeHintForColumn(1) + self.addonList.sizeHintForColumn(2) + self.addonList.sizeHintForColumn(3) + 120
 		size = Qt.QSize(width, 815)
 		return size
 
@@ -238,7 +241,7 @@ class MainWidget(Qt.QMainWindow):
 					row = self.addonList.rowCount()
 					if len(self.addonList.findItems(name, Qt.Qt.MatchExactly)) == 0:
 						self.addonList.setRowCount(row + 1)
-						self.insertAddon(row, name, uri, version)
+						self.insertAddon(row, name, uri, version, False)
 		self.addonList.resizeColumnsToContents()
 		self.addonList.sortItems(0)
 		self.saveAddons()
@@ -247,10 +250,13 @@ class MainWidget(Qt.QMainWindow):
 		pref = preferences.PreferencesDlg(self)
 		pref.exec_()
 
-	def insertAddon(self, row, name, uri, version):
+	def insertAddon(self, row, name, uri, version, allowBeta):
 		self.addonList.setItem(row, 0, Qt.QTableWidgetItem(name))
 		self.addonList.setItem(row, 1, Qt.QTableWidgetItem(uri))
 		self.addonList.setItem(row, 2, Qt.QTableWidgetItem(version))
+		allowBetaItem = Qt.QTableWidgetItem()
+		allowBetaItem.setCheckState(Qt.Qt.Checked if allowBeta else Qt.Qt.Unchecked)
+		self.addonList.setItem(row, 3, allowBetaItem)
 
 	def loadAddonCatalog(self):
 		if os.path.exists(defines.LCURSE_ADDON_CATALOG):
@@ -269,6 +275,12 @@ class MainWidget(Qt.QMainWindow):
 				self.addonList.setItem(row, 0, Qt.QTableWidgetItem(addon["name"]))
 				self.addonList.setItem(row, 1, Qt.QTableWidgetItem(addon["uri"]))
 				self.addonList.setItem(row, 2, Qt.QTableWidgetItem(addon["version"]))
+				allowBeta = False
+				if "allowbeta" in addon:
+					allowBeta = addon["allowbeta"]
+				allowBetaItem = Qt.QTableWidgetItem()
+				allowBetaItem.setCheckState(Qt.Qt.Checked if allowBeta else Qt.Qt.Unchecked)
+				self.addonList.setItem(row, 3, allowBetaItem)
 			self.addonList.resizeColumnsToContents()
 			self.adjustSize()
 
@@ -278,7 +290,8 @@ class MainWidget(Qt.QMainWindow):
 			addons.append(dict(
 					name=str(self.addonList.item(row, 0).text()),
 					uri=str(self.addonList.item(row, 1).text()),
-					version=str(self.addonList.item(row, 2).text())
+					version=str(self.addonList.item(row, 2).text()),
+					allowbeta=bool(self.addonList.item(row, 3).checkState() == Qt.Qt.Checked)
 				))
 
 		with open(self.addonsFile, "w") as f:
@@ -340,7 +353,8 @@ class MainWidget(Qt.QMainWindow):
 		name = self.addonList.item(row, 0).text()
 		uri = self.addonList.item(row, 1).text()
 		version = self.addonList.item(row, 2).text()
-		addons.append((row, name, uri, version))
+		allowBeta = bool(self.addonList.item(row, 3).checkState() == Qt.Qt.Checked)
+		addons.append((row, name, uri, version, allowBeta))
 
 		checkDlg = waitdlg.CheckDlg(self, addons)
 		checkDlg.checkFinished.connect(self.onCheckFinished)
@@ -352,7 +366,8 @@ class MainWidget(Qt.QMainWindow):
 			name = self.addonList.item(row, 0).text()
 			uri = self.addonList.item(row, 1).text()
 			version = self.addonList.item(row, 2).text()
-			addons.append((row, name, uri, version))
+			allowBeta = bool(self.addonList.item(row, 3).checkState() == Qt.Qt.Checked)
+			addons.append((row, name, uri, version, allowBeta))
 
 		checkDlg = waitdlg.CheckDlg(self, addons)
 		checkDlg.checkFinished.connect(self.onCheckFinished)
@@ -379,7 +394,8 @@ class MainWidget(Qt.QMainWindow):
 		name = self.addonList.item(row, 0).text()
 		uri = self.addonList.item(row, 1).text()
 		version = self.addonList.item(row, 2).text()
-		addons.append((row, name, uri, version, data))
+		allowBeta = bool(self.addonList.item(row, 3).checkState() == Qt.Qt.Checked)
+		addons.append((row, name, uri, version, allowBeta, data))
 
 		if len(addons):
 			updateDlg = waitdlg.UpdateDlg(self, addons)
@@ -396,7 +412,8 @@ class MainWidget(Qt.QMainWindow):
 				name = self.addonList.item(row, 0).text()
 				uri = self.addonList.item(row, 1).text()
 				version = self.addonList.item(row, 2).text()
-				addons.append((row, name, uri, version, data))
+				allowBeta = bool(self.addonList.item(row, 3).checkState() == Qt.Qt.Checked)
+				addons.append((row, name, uri, version, allowBeta, data))
 
 		if len(addons):
 			updateDlg = waitdlg.UpdateDlg(self, addons)

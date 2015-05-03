@@ -60,13 +60,19 @@ class CheckWorker(Qt.QThread):
 
 	def needsUpdate(self):
 		try:
-			response = self.opener.open(str(self.addon[2]) + "/download")
+			response = self.opener.open(str(self.addon[2])) # + "/download")
 			html = response.read()
 			soup = BeautifulSoup(html)
-			lis = soup.select('#breadcrumbs-wrapper ul li span')
+			possibleValues = "1"
+			if self.addon[4]:
+				possibleValues = re.compile("^[12]$")
+			lis = soup.findAll("td", attrs={"data-sort-value": possibleValues})
 			if len(lis) > 0:
-				version = lis[len(lis) - 1].string
+				version = lis[0].parent.contents[0].contents[0].string
 				if str(self.addon[3]) != version:
+					response = self.opener.open("http://www.curse.com" + lis[0].parent.contents[0].contents[0]['href'])
+					html = response.read()
+					soup = BeautifulSoup(html)
 					downloadLink = soup.select(".download-link")[0].get('data-href')
 					return (True, (version, downloadLink))
 			return (False, ("", ""))
@@ -130,9 +136,10 @@ class UpdateWorker(Qt.QThread):
 	def doUpdate(self):
 		try:
 			settings = Qt.QSettings()
-			print("updating addon %s to version %s ..." % (self.addon[1], self.addon[4][0]))
-			response = self.opener.open(self.addon[4][1])
-			filename = "/tmp/%s" % (self.addon[4][1].split('/')[-1])
+			print("updating addon %s to version %s ..." % (self.addon[1], self.addon[5][0]))
+			print("getting new version from: %s" % (self.addon[5][1]))
+			response = self.opener.open(self.addon[5][1])
+			filename = "/tmp/%s" % (self.addon[5][1].split('/')[-1])
 			dest = "%s/Interface/AddOns/" % (settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
 			with open(filename, 'wb') as zipped:
 				zipped.write(response.read())
