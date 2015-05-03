@@ -324,6 +324,9 @@ class MainWidget(Qt.QMainWindow):
 				self.addonList.setItem(newrow, 0, Qt.QTableWidgetItem(name))
 				self.addonList.setItem(newrow, 1, Qt.QTableWidgetItem(url))
 				self.addonList.setItem(newrow, 2, Qt.QTableWidgetItem(""))
+				allowBetaItem = Qt.QTableWidgetItem()
+				allowBetaItem.setCheckState(Qt.Qt.Unchecked)
+				self.addonList.setItem(newrow, 3, allowBetaItem)
 
 	def removeAddon(self):
 		row = self.addonList.currentRow()
