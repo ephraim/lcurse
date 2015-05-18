@@ -60,6 +60,7 @@ class CheckWorker(Qt.QThread):
 
 	def needsUpdate(self):
 		try:
+			pattern = re.compile("-nolib$")
 			response = self.opener.open(str(self.addon[2])) # + "/download")
 			html = response.read()
 			soup = BeautifulSoup(html)
@@ -68,9 +69,13 @@ class CheckWorker(Qt.QThread):
 				possibleValues = re.compile("^[12]$")
 			lis = soup.findAll("td", attrs={"data-sort-value": possibleValues})
 			if len(lis) > 0:
-				version = lis[0].parent.contents[0].contents[0].string
+				versionIdx = 0
+				version = lis[versionIdx].parent.contents[0].contents[0].string
+				if len(lis) > 1 and pattern.search(version) != None and pattern.sub("", version) == lis[1].parent.contents[0].contents[0].string:
+						versionIdx = 1
+						version = lis[versionIdx].parent.contents[0].contents[0].string
 				if str(self.addon[3]) != version:
-					response = self.opener.open("http://www.curse.com" + lis[0].parent.contents[0].contents[0]['href'])
+					response = self.opener.open("http://www.curse.com" + lis[versionIdx].parent.contents[0].contents[0]['href'])
 					html = response.read()
 					soup = BeautifulSoup(html)
 					downloadLink = soup.select(".download-link")[0].get('data-href')
