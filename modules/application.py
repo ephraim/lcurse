@@ -330,11 +330,12 @@ class MainWidget(Qt.QMainWindow):
 
 	def removeAddon(self):
 		row = self.addonList.currentRow()
-		if row != 0:
-			answer = Qt.QMessageBox.question(self, self.tr("Remove selected addon"), str(self.tr("Do you really want to remove the following addon?\n%s")) % (str(self.addonList.item(row, 0).text())),
-						Qt.QMessageBox.Yes, Qt.QMessageBox.No)
-			if answer == Qt.QMessageBox.Yes:
-				self.addonList.removeRow(row)
+		print("Current Row: %d" % (row))
+		answer = Qt.QMessageBox.question(self, self.tr("Remove selected addon"), str(self.tr("Do you really want to remove the following addon?\n%s")) % (str(self.addonList.item(row, 0).text())),
+					Qt.QMessageBox.Yes, Qt.QMessageBox.No)
+		if answer == Qt.QMessageBox.Yes:
+			self.addonList.removeRow(row)
+			self.saveAddons()
 
 	def setRowColor(self, row, color):
 		self.addonList.item(row, 0).setBackground(color)
