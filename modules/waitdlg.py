@@ -7,9 +7,11 @@ import defines
 import os
 import re
 from _thread import start_new_thread
+from threading import Lock
 
 class CheckDlg(Qt.QDialog):
 	checkFinished = Qt.pyqtSignal(Qt.QVariant, bool, Qt.QVariant)
+	closeSignal = Qt.pyqtSignal()
 	def __init__(self, parent, addons):
 		super(CheckDlg, self).__init__(parent)
 		settings = Qt.QSettings()
@@ -23,31 +25,66 @@ class CheckDlg(Qt.QDialog):
 		self.progress.setValue(0)
 		self.progress.setFormat("%v / %m | %p%")
 		layout.addWidget(self.progress)
+		self.cancelButton = Qt.QPushButton(self.tr("Cancel"), self)
+		self.cancelButton.clicked.connect(self.onCancel)
+		layout.addWidget(self.cancelButton)
 		self.addons = addons
 		self.maxThreads = int(settings.value(defines.LCURSE_MAXTHREADS_KEY, defines.LCURSE_MAXTHREADS_DEFAULT))
 		self.sem = Qt.QSemaphore(self.maxThreads)
+
+		# safe to use without a mutex because reading and writing are independent of each other, and GIL will make these atomic operations.
+		self.cancelled = False
+
+		# protected with self.progressMutex
+		self.progressMutex = Lock()
+		self.progressOrAborted = 0
+
+		self.closeSignal.connect(self.close)
+
+	def closeEvent(self, event):
+		with self.progressMutex:
+			if self.progressOrAborted < self.progress.maximum():
+				# if we aren't ready to close, the user pressed the close button - set the cancel flag so we can stop
+				self.cancelled = True
+				event.ignore()
 
 	def startWorkerThreads(self):
 		self.threads = []
 		for addon in self.addons:
 			self.sem.acquire()
-			thread = CheckWorker(addon)
-			thread.checkFinished.connect(self.onCheckFinished)
-			thread.start()
-			self.threads.append(thread)	
+			if not self.cancelled:
+				thread = CheckWorker(addon)
+				thread.checkFinished.connect(self.onCheckFinished)
+				thread.start()
+				self.threads.append(thread)
+			else:
+				self.onCancelOrFinish(False)
 
 	def exec_(self):
 		start_new_thread(self.startWorkerThreads, ())
 		super(CheckDlg, self).exec_()
 
+	def onCancelOrFinish(self, updateProgress):
+		self.sem.release()
+		shouldClose = False
+		if updateProgress:
+			self.progress.setValue(self.progress.value() + 1)
+		with self.progressMutex:
+			self.progressOrAborted += 1
+			if self.progressOrAborted == self.progress.maximum():
+				shouldClose = True
+		if shouldClose:
+			# emit this as a signal so that it will be processed on the main thread.
+			# Otherwise, this will try to do cleanup from a worker thread, which is a /bad/ idea.
+			self.closeSignal.emit()
+
 	@Qt.pyqtSlot(int, Qt.QVariant)
 	def onCheckFinished(self, addon, needsUpdate, updateData):
-		self.sem.release()
-		value = self.progress.value() + 1
-		self.progress.setValue(value)
 		self.checkFinished.emit(addon, needsUpdate, updateData)
-		if value == self.progress.maximum():
-			self.close()
+		self.onCancelOrFinish(True)
+
+	def onCancel(self):
+		self.cancelled = True
 
 class CheckWorker(Qt.QThread):
 	checkFinished = Qt.pyqtSignal(Qt.QVariant, bool, Qt.QVariant)
@@ -87,7 +124,7 @@ class CheckWorker(Qt.QThread):
 
 	def run(self):
 		result = self.needsUpdate()
-		self.checkFinished.emit(self.addon, result[0], result[1]) 
+		self.checkFinished.emit(self.addon, result[0], result[1])
 
 class UpdateDlg(Qt.QDialog):
 	updateFinished = Qt.pyqtSignal(Qt.QVariant, bool)
@@ -115,7 +152,7 @@ class UpdateDlg(Qt.QDialog):
 			thread = UpdateWorker(addon)
 			thread.updateFinished.connect(self.onUpdateFinished)
 			thread.start()
-			self.threads.append(thread)	
+			self.threads.append(thread)
 
 	def exec_(self):
 		start_new_thread(self.startWorkerThreads, ())
@@ -158,7 +195,7 @@ class UpdateWorker(Qt.QThread):
 
 	def run(self):
 		result = self.doUpdate()
-		self.updateFinished.emit(self.addon, result) 
+		self.updateFinished.emit(self.addon, result)
 
 
 class UpdateCatalogDlg(Qt.QDialog):
