@@ -164,6 +164,7 @@ class UpdateDlg(Qt.QDialog):
 
 	@Qt.pyqtSlot(int, Qt.QVariant)
 	def onUpdateFinished(self, addon, result):
+		self.sem.release()
 		value = self.progress.value() + 1
 		self.progress.setValue(value)
 		self.updateFinished.emit(addon, result)
