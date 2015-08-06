@@ -8,6 +8,7 @@ import os
 import re
 from _thread import start_new_thread
 from threading import Lock
+from subprocess import check_output, check_call
 
 class CheckDlg(Qt.QDialog):
 	checkFinished = Qt.pyqtSignal(Qt.QVariant, bool, Qt.QVariant)
@@ -99,7 +100,20 @@ class CheckWorker(Qt.QThread):
 		# default User-Agent ('Python-urllib/2.6') will *not* work
 		self.opener.addheaders = [('User-Agent', 'Mozilla/5.0'),]
 
-	def needsUpdate(self):
+	def needsUpdateGit(self):
+		try:
+			settings = Qt.QSettings()
+			dest = "%s/Interface/AddOns/%s" % (settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT), os.path.basename(str(self.addon[2])[:-4]))
+			originCurrent = str(check_output(["git", "ls-remote", str(self.addon[2]), "HEAD"]), "utf-8").split()[0]
+			localCurrent = self.addon[3]
+			if localCurrent != originCurrent:
+				return (True, (originCurrent, ""))
+			return (False, ("", ""))
+		except Exception as e:
+			print(e)
+		return (False, None)	
+
+	def needsUpdateCurse(self):
 		try:
 			pattern = re.compile("-nolib$")
 			response = self.opener.open(str(self.addon[2])) # + "/download")
@@ -127,7 +141,10 @@ class CheckWorker(Qt.QThread):
 		return (False, None)
 
 	def run(self):
-		result = self.needsUpdate()
+		if self.addon[2].startswith("http://www.curse.com"):
+			result = self.needsUpdateCurse()
+		elif self.addon[2].endswith(".git"):
+			result = self.needsUpdateGit()
 		self.checkFinished.emit(self.addon, result[0], result[1])
 
 class UpdateDlg(Qt.QDialog):
@@ -180,7 +197,24 @@ class UpdateWorker(Qt.QThread):
 		# default User-Agent ('Python-urllib/2.6') will *not* work
 		self.opener.addheaders = [('User-Agent', 'Mozilla/5.0'),]
 
-	def doUpdate(self):
+	def doUpdateGit(self):
+		try:
+			settings = Qt.QSettings()
+			dest = "%s/Interface/AddOns" % (settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
+			destAddon = "%s/%s" % (dest, os.path.basename(str(self.addon[2]))[:-4])
+			print(destAddon)
+			if not os.path.exists(destAddon):
+				os.chdir(dest)
+				check_call(["git", "clone", self.addon[2]])
+			else:
+				os.chdir(destAddon)
+				check_call(["git", "pull"])
+			return True
+		except Exception as e:
+			print(e)
+		return False
+
+	def doUpdateCurse(self):
 		try:
 			settings = Qt.QSettings()
 			print("updating addon %s to version %s ..." % (self.addon[1], self.addon[5][0]))
@@ -199,7 +233,10 @@ class UpdateWorker(Qt.QThread):
 		return False
 
 	def run(self):
-		result = self.doUpdate()
+		if self.addon[2].startswith("http://www.curse.com"):
+			result = self.doUpdateCurse()
+		elif self.addon[2].endswith(".git"):
+			result = self.doUpdateGit()
 		self.updateFinished.emit(self.addon, result)
 
 

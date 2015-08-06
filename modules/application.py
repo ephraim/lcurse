@@ -7,7 +7,7 @@ import os
 import re
 from urllib.parse import urlparse
 import urllib
-from urllib.request import build_opener, HTTPCookieProcessor
+from urllib.request import build_opener, HTTPCookieProcessor, HTTPError
 from http import cookiejar
 from bs4 import BeautifulSoup
 
@@ -306,14 +306,17 @@ class MainWidget(Qt.QMainWindow):
 			pieces = urlparse(nameOrUrl)
 			if pieces.scheme != "" or pieces.netloc != "":
 				url = str(nameOrUrl)
-				try:
-					print("retrieving addon informations")
-					response = opener.open(url)
-					soup = BeautifulSoup(response.read())
-					captions = soup.select(".caption span span span")
-					name = captions[0].string
-				except urllib2.HTTPError as e:
-					print(e)
+				if url.startswith("http://www.curse.com"):
+					try:
+						print("retrieving addon informations")
+						response = opener.open(url)
+						soup = BeautifulSoup(response.read())
+						captions = soup.select(".caption span span span")
+						name = captions[0].string
+					except HTTPError as e:
+						print(e)
+				elif url.endswith(".git"):
+					name = os.path.basename(url)[:-4]
 			else:
 				name = nameOrUrl
 				url  = [ item[1] for item in self.availableAddons if item[0] == name ][0]
