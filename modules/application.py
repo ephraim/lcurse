@@ -215,9 +215,9 @@ class MainWidget(Qt.QMainWindow):
 		name = self.removeStupidStuff(name)
 		curseId = self.removeStupidStuff(curseId)
 
-		uri = "http://www.curse.com/addons/wow/%s" % (name.lower().replace(" ", "-"))
+		uri = "http://mods.curse.com/addons/wow/%s" % (name.lower().replace(" ", "-"))
 		if curseId != "":
-			uri = "http://www.curse.com/addons/wow/%s" % (curseId)
+			uri = "http://mods.curse.com/addons/wow/%s" % (curseId)
 
 		if name == "" or version == "":
 			print("not enough informations found for addon in toc: %s" % (toc))
