@@ -319,7 +319,13 @@ class MainWidget(Qt.QMainWindow):
 					name = os.path.basename(url)[:-4]
 			else:
 				name = nameOrUrl
-				url  = [ item[1] for item in self.availableAddons if item[0] == name ][0]
+				try:
+					for item in self.availableAddons:
+						if item[0] == name:
+							url = item[1]
+				except IndexError:
+					print("can't handle: " + name)
+					name = ""
 
 			if name != "":
 				newrow = self.addonList.rowCount()
