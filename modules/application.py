@@ -243,7 +243,6 @@ class MainWidget(Qt.QMainWindow):
 						self.addonList.setRowCount(row + 1)
 						self.insertAddon(row, name, uri, version, False)
 		self.addonList.resizeColumnsToContents()
-		self.addonList.sortItems(0)
 		self.saveAddons()
 
 	def openPreferences(self):
@@ -286,6 +285,7 @@ class MainWidget(Qt.QMainWindow):
 
 	def saveAddons(self):
 		addons = []
+		self.addonList.sortItems(0)
 		for row in iter(range(self.addonList.rowCount())):
 			addons.append(dict(
 					name=str(self.addonList.item(row, 0).text()),
