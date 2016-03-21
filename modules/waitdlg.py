@@ -288,20 +288,17 @@ class UpdateCatalogWorker(Qt.QThread):
 		self.addonsMutex = Qt.QMutex()
 		self.maxThreads = int(settings.value(defines.LCURSE_MAXTHREADS_KEY, defines.LCURSE_MAXTHREADS_DEFAULT))
 		self.sem = Qt.QSemaphore(self.maxThreads)
-
-	# pager => "Page 1 of 178"
-	def parsePager(self, pager):
-		m = re.search("(\d+) of (\d+)", pager)
-		if m == None:
-			raise Exception("pager is crap")
-		return int(m.group(2))
+		self.lastpage = 1
 
 	def retrievePartialListOfAddons(self, page):
 		response = self.opener.open("http://www.curse.com/addons/wow?page=%d" % (page))
 		soup = BeautifulSoup(response.read())
-
-		pager = soup.select("span .pager-display")
-		lastpage = self.parsePager(pager[0].string)
+		
+		lastpage = 1
+		if page == 1:
+			pager = soup.select("ul.b-pagination-list.paging-list.j-tablesorter-pager.j-listing-pagination li")
+			if len(pager) > 0:
+				lastpage = int(pager[len(pager) - 2].contents[0].contents[0])
 
 		links = soup.select("li .title h4 a") # li .title h4 a")
 		self.addonsMutex.lock()
