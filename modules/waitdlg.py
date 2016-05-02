@@ -141,11 +141,16 @@ class CheckWorker(Qt.QThread):
 		return (False, None)
 
 	def run(self):
+		result = None;
 		if self.addon[2].startswith("http://www.curse.com"):
 			result = self.needsUpdateCurse()
 		elif self.addon[2].endswith(".git"):
 			result = self.needsUpdateGit()
-		self.checkFinished.emit(self.addon, result[0], result[1])
+
+		if result != None:
+			self.checkFinished.emit(self.addon, result[0], result[1])
+		else:
+			self.checkFinished.emit(self.addon, False, False)
 
 class UpdateDlg(Qt.QDialog):
 	updateFinished = Qt.pyqtSignal(Qt.QVariant, bool)
