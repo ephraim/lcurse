@@ -83,7 +83,7 @@ class CheckDlg(Qt.QDialog):
 			# Otherwise, this will try to do cleanup from a worker thread, which is a /bad/ idea.
 			self.closeSignal.emit()
 
-	@Qt.pyqtSlot(int, Qt.QVariant)
+	@Qt.pyqtSlot(Qt.QVariant, bool, Qt.QVariant)
 	def onCheckFinished(self, addon, needsUpdate, updateData):
 		self.checkFinished.emit(addon, needsUpdate, updateData)
 		self.onCancelOrFinish(True)
@@ -118,7 +118,7 @@ class CheckWorker(Qt.QThread):
 			pattern = re.compile("-nolib$")
 			response = self.opener.open(str(self.addon[2])) # + "/download")
 			html = response.read()
-			soup = BeautifulSoup(html)
+			soup = BeautifulSoup(html, "lxml")
 			possibleValues = "1"
 			if self.addon[4]:
 				possibleValues = re.compile("^[12]$")
@@ -132,7 +132,7 @@ class CheckWorker(Qt.QThread):
 				if str(self.addon[3]) != version:
 					response = self.opener.open("http://www.curse.com" + lis[versionIdx].parent.contents[0].contents[0]['href'])
 					html = response.read()
-					soup = BeautifulSoup(html)
+					soup = BeautifulSoup(html, "lxml")
 					downloadLink = soup.select(".download-link")[0].get('data-href')
 					return (True, (version, downloadLink))
 			return (False, ("", ""))
@@ -297,7 +297,7 @@ class UpdateCatalogWorker(Qt.QThread):
 
 	def retrievePartialListOfAddons(self, page):
 		response = self.opener.open("http://www.curse.com/addons/wow?page=%d" % (page))
-		soup = BeautifulSoup(response.read())
+		soup = BeautifulSoup(response.read(), "lxml")
 		
 		lastpage = 1
 		if page == 1:
