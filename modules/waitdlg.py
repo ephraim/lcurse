@@ -6,9 +6,36 @@ import zipfile
 import defines
 import os
 import re
+import time
 from _thread import start_new_thread
 from threading import Lock
 from subprocess import check_output, check_call
+
+opener = build_opener(HTTPCookieProcessor(cookiejar.CookieJar()))
+
+# default User-Agent ('Python-urllib/2.6') will *not* work
+opener.addheaders = [('User-Agent', 'Mozilla/5.0'),]
+
+def OpenWithRetry(url):
+	print('Opening {}'.format(url))
+	count = 0
+	maxcount = 5
+
+	# Retry 5 times
+	while count < maxcount:
+		try:
+			response = opener.open(str(url))
+
+			return response
+
+		except Exception as e:
+			print("Could not open '{}', retrying... ({})".format(url, count))
+
+			count = count + 1
+			time.sleep(1)
+
+			if count >= maxcount:
+				raise
 
 class CheckDlg(Qt.QDialog):
 	checkFinished = Qt.pyqtSignal(Qt.QVariant, bool, Qt.QVariant)
@@ -96,9 +123,6 @@ class CheckWorker(Qt.QThread):
 	def __init__(self, addon):
 		super(CheckWorker, self).__init__()
 		self.addon = addon
-		self.opener = build_opener(HTTPCookieProcessor(cookiejar.CookieJar()))
-		# default User-Agent ('Python-urllib/2.6') will *not* work
-		self.opener.addheaders = [('User-Agent', 'Mozilla/5.0'),]
 
 	def needsUpdateGit(self):
 		try:
@@ -116,7 +140,7 @@ class CheckWorker(Qt.QThread):
 	def needsUpdateCurse(self):
 		try:
 			pattern = re.compile("-nolib$")
-			response = self.opener.open(str(self.addon[2])) # + "/download")
+			response = OpenWithRetry(self.addon[2])
 			html = response.read()
 			soup = BeautifulSoup(html, "lxml")
 			possibleValues = "1"
@@ -130,7 +154,7 @@ class CheckWorker(Qt.QThread):
 						versionIdx = 1
 						version = lis[versionIdx].parent.contents[0].contents[0].string
 				if str(self.addon[3]) != version:
-					response = self.opener.open("http://www.curse.com" + lis[versionIdx].parent.contents[0].contents[0]['href'])
+					response = OpenWithRetry("http://www.curse.com" + lis[versionIdx].parent.contents[0].contents[0]['href'])
 					html = response.read()
 					soup = BeautifulSoup(html, "lxml")
 					downloadLink = soup.select(".download-link")[0].get('data-href')
@@ -198,9 +222,6 @@ class UpdateWorker(Qt.QThread):
 	def __init__(self, addon):
 		super(UpdateWorker, self).__init__()
 		self.addon = addon
-		self.opener = build_opener(HTTPCookieProcessor(cookiejar.CookieJar()))
-		# default User-Agent ('Python-urllib/2.6') will *not* work
-		self.opener.addheaders = [('User-Agent', 'Mozilla/5.0'),]
 
 	def doUpdateGit(self):
 		try:
@@ -224,7 +245,7 @@ class UpdateWorker(Qt.QThread):
 			settings = Qt.QSettings()
 			print("updating addon %s to version %s ..." % (self.addon[1], self.addon[5][0]))
 			print("getting new version from: %s" % (self.addon[5][1]))
-			response = self.opener.open(self.addon[5][1])
+			response = OpenWithRetry(self.addon[5][1])
 			filename = "/tmp/%s" % (self.addon[5][1].split('/')[-1])
 			dest = "%s/Interface/AddOns/" % (settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
 			with open(filename, 'wb') as zipped:
@@ -286,9 +307,6 @@ class UpdateCatalogWorker(Qt.QThread):
 	def __init__(self):
 		super(UpdateCatalogWorker, self).__init__()
 		settings = Qt.QSettings()
-		self.opener = build_opener(HTTPCookieProcessor(cookiejar.CookieJar()))
-		# default User-Agent ('Python-urllib/2.6') will *not* work
-		self.opener.addheaders = [('User-Agent', 'Mozilla/5.0'),]
 		self.addons = []
 		self.addonsMutex = Qt.QMutex()
 		self.maxThreads = int(settings.value(defines.LCURSE_MAXTHREADS_KEY, defines.LCURSE_MAXTHREADS_DEFAULT))
@@ -296,7 +314,7 @@ class UpdateCatalogWorker(Qt.QThread):
 		self.lastpage = 1
 
 	def retrievePartialListOfAddons(self, page):
-		response = self.opener.open("http://www.curse.com/addons/wow?page=%d" % (page))
+		response = OpenWithRetry("http://www.curse.com/addons/wow?page=%d" % (page))
 		soup = BeautifulSoup(response.read(), "lxml")
 		
 		lastpage = 1
