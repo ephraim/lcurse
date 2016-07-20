@@ -208,7 +208,7 @@ class UpdateDlg(Qt.QDialog):
 		start_new_thread(self.startWorkerThreads, ())
 		super(UpdateDlg, self).exec_()
 
-	@Qt.pyqtSlot(int, Qt.QVariant)
+	@Qt.pyqtSlot(Qt.QVariant, bool)
 	def onUpdateFinished(self, addon, result):
 		self.sem.release()
 		value = self.progress.value() + 1
