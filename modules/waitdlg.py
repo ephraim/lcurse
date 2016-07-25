@@ -166,7 +166,7 @@ class CheckWorker(Qt.QThread):
 
 	def run(self):
 		result = None;
-		if self.addon[2].startswith("http://www.curse.com"):
+		if "curse.com" in self.addon[2]:
 			result = self.needsUpdateCurse()
 		elif self.addon[2].endswith(".git"):
 			result = self.needsUpdateGit()
@@ -259,7 +259,7 @@ class UpdateWorker(Qt.QThread):
 		return False
 
 	def run(self):
-		if self.addon[2].startswith("http://www.curse.com"):
+		if "curse.com" in self.addon[2]:
 			result = self.doUpdateCurse()
 		elif self.addon[2].endswith(".git"):
 			result = self.doUpdateGit()
