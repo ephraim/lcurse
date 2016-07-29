@@ -46,7 +46,7 @@ class PreferencesDlg(Qt.QDialog):
                                                           Qt.QFileDialog.DontResolveSymlinks)
 
         if selectedDir != "":
-            dir = Qt.QDir("%s/Interface/AddOns" % (selectedDir))
+            dir = Qt.QDir("{}/Interface/AddOns".format(selectedDir))
             if dir.exists():
                 self.wowInstallFolder.setText(selectedDir)
             else:

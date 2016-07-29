@@ -219,24 +219,24 @@ class MainWidget(Qt.QMainWindow):
         name = self.removeStupidStuff(name)
         curseId = self.removeStupidStuff(curseId)
 
-        uri = "http://mods.curse.com/addons/wow/%s" % (name.lower().replace(" ", "-"))
+        uri = "http://mods.curse.com/addons/wow/{}".format(name.lower().replace(" ", "-"))
         if curseId != "":
-            uri = "http://mods.curse.com/addons/wow/%s" % (curseId)
+            uri = "http://mods.curse.com/addons/wow/{}".format(curseId)
 
         if name == "" or version == "":
-            print("not enough informations found for addon in toc: %s" % (toc))
+            print("not enough informations found for addon in toc: {}".format(toc))
             return ["", "", ""]
 
         return [name, uri, version]
 
     def importAddons(self):
         settings = Qt.QSettings()
-        parent = "%s/Interface/AddOns" % (str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)))
+        parent = "{}/Interface/AddOns".format(str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)))
         contents = os.listdir(parent)
         for item in contents:
-            itemDir = "%s/%s" % (parent, item)
+            itemDir = "{}/{}".format(parent, item)
             if os.path.isdir(itemDir) and not item.lower().startswith("blizzard_"):
-                toc = "%s/%s.toc" % (itemDir, item)
+                toc = "{}/{}.toc".format(itemDir, item)
                 if os.path.exists(toc):
                     tmp = self.extractAddonMetadataFromTOC(toc)
                     if tmp[0] == "":
@@ -343,10 +343,10 @@ class MainWidget(Qt.QMainWindow):
 
     def removeAddon(self):
         row = self.addonList.currentRow()
-        print("Current Row: %d" % (row))
+        print("Current Row: {0:d}".format(row))
         answer = Qt.QMessageBox.question(self, self.tr("Remove selected addon"),
-                                         str(self.tr("Do you really want to remove the following addon?\n%s")) % (
-                                         str(self.addonList.item(row, 0).text())),
+                                         str(self.tr("Do you really want to remove the following addon?\n{}")).format(
+                                             str(self.addonList.item(row, 0).text())),
                                          Qt.QMessageBox.Yes, Qt.QMessageBox.No)
         if answer == Qt.QMessageBox.Yes:
             self.addonList.removeRow(row)
@@ -441,7 +441,7 @@ class MainWidget(Qt.QMainWindow):
             self.saveAddons()
 
     def onUpdateCatalogFinished(self, addons):
-        print("retrieved list of addons: %d" % (len(addons)))
+        print("retrieved list of addons: {}".format(len(addons)))
         self.availableAddons = addons
         with open(defines.LCURSE_ADDON_CATALOG, "w") as c:
             json.dump(self.availableAddons, c)

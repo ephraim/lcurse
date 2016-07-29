@@ -133,8 +133,9 @@ class CheckWorker(Qt.QThread):
     def needsUpdateGit(self):
         try:
             settings = Qt.QSettings()
-            dest = "%s/Interface/AddOns/%s" % (settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT),
-                                               os.path.basename(str(self.addon[2])[:-4]))
+            dest = "{}/Interface/AddOns/{}".format(
+                settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT),
+                os.path.basename(str(self.addon[2])[:-4]))
             originCurrent = str(check_output(["git", "ls-remote", str(self.addon[2]), "HEAD"]), "utf-8").split()[0]
             localCurrent = self.addon[3]
             if localCurrent != originCurrent:
@@ -239,8 +240,8 @@ class UpdateWorker(Qt.QThread):
     def doUpdateGit(self):
         try:
             settings = Qt.QSettings()
-            dest = "%s/Interface/AddOns" % (settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
-            destAddon = "%s/%s" % (dest, os.path.basename(str(self.addon[2]))[:-4])
+            dest = "{}/Interface/AddOns".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
+            destAddon = "{}/{}".format(dest, os.path.basename(str(self.addon[2]))[:-4])
             print(destAddon)
             if not os.path.exists(destAddon):
                 os.chdir(dest)
@@ -256,11 +257,11 @@ class UpdateWorker(Qt.QThread):
     def doUpdateCurse(self):
         try:
             settings = Qt.QSettings()
-            print("updating addon %s to version %s ..." % (self.addon[1], self.addon[5][0]))
-            print("getting new version from: %s" % (self.addon[5][1]))
+            print("updating addon {} to version {} ...".format(self.addon[1], self.addon[5][0]))
+            print("getting new version from: {}".format(self.addon[5][1]))
             response = OpenWithRetry(self.addon[5][1])
-            filename = "/tmp/%s" % (self.addon[5][1].split('/')[-1])
-            dest = "%s/Interface/AddOns/" % (settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
+            filename = "/tmp/{}".format(self.addon[5][1].split('/')[-1])
+            dest = "{}/Interface/AddOns/".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
             with open(filename, 'wb') as zipped:
                 zipped.write(response.read())
             with zipfile.ZipFile(filename, "r") as z:
@@ -307,7 +308,7 @@ class UpdateCatalogDlg(Qt.QDialog):
     def onProgress(self, foundAddons):
         value = self.progress.value() + 1
         self.progress.setValue(value)
-        self.progress.setFormat(self.tr("%%p%% - found Addons: %d") % (foundAddons))
+        self.progress.setFormat(self.tr("%%p%% - found Addons: {}").format(foundAddons))
 
     @Qt.pyqtSlot(Qt.QVariant)
     def onUpdateCatalogFinished(self, addons):
@@ -330,7 +331,7 @@ class UpdateCatalogWorker(Qt.QThread):
         self.lastpage = 1
 
     def retrievePartialListOfAddons(self, page):
-        response = OpenWithRetry("http://www.curse.com/addons/wow?page=%d" % (page))
+        response = OpenWithRetry("http://www.curse.com/addons/wow?page={}".format(page))
         soup = BeautifulSoup(response.read(), "lxml")
 
         lastpage = 1
@@ -342,7 +343,7 @@ class UpdateCatalogWorker(Qt.QThread):
         links = soup.select("li .title h4 a")  # li .title h4 a")
         self.addonsMutex.lock()
         for link in links:
-            self.addons.append([link.string, "http://www.curse.com%s" % (link.get("href"))])
+            self.addons.append([link.string, "http://www.curse.com{}".format(link.get("href"))])
         self.progress.emit(len(self.addons))
         self.addonsMutex.unlock()
 
