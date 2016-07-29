@@ -19,33 +19,35 @@ app = None
 ret = 42
 translations = []
 
+
 def loadTranslators():
-	qttranslator = Qt.QTranslator()
-	qttranslator.load("qt_" + Qt.QLocale.system().name(), Qt.QLibraryInfo.location(Qt.QLibraryInfo.TranslationsPath))
-	translations.append(qttranslator)
-	if os.path.exists(appTranslationFile):
-		apptranslator = Qt.QTranslator()
-		apptranslator.load(appTranslationFile)
-		translations.append(apptranslator)
-	else:
-		print("WARNING: gui translation file could not be found: %s" % (appTranslationFile))
-	
-	for translator in translations:
-		app.installTranslator(translator)
+    qttranslator = Qt.QTranslator()
+    qttranslator.load("qt_" + Qt.QLocale.system().name(), Qt.QLibraryInfo.location(Qt.QLibraryInfo.TranslationsPath))
+    translations.append(qttranslator)
+    if os.path.exists(appTranslationFile):
+        apptranslator = Qt.QTranslator()
+        apptranslator.load(appTranslationFile)
+        translations.append(apptranslator)
+    else:
+        print("WARNING: gui translation file could not be found: %s" % (appTranslationFile))
+
+    for translator in translations:
+        app.installTranslator(translator)
 
 
 if __name__ == "__main__":
-	Qt.QCoreApplication.setApplicationName("lcurse")
-	Qt.QCoreApplication.setOrganizationName("None-Inc.")
-	app = Qt.QApplication(sys.argv)
-	loadTranslators()
+    Qt.QCoreApplication.setApplicationName("lcurse")
+    Qt.QCoreApplication.setOrganizationName("None-Inc.")
+    app = Qt.QApplication(sys.argv)
+    loadTranslators()
 
-	from modules import application
-	mainWidget = application.MainWidget()
-	try:
-		mainWidget.show()
-		ret = app.exec_()
-	except Exception as e:
-		print(str(e))
+    from modules import application
+
+    mainWidget = application.MainWidget()
+    try:
+        mainWidget.show()
+        ret = app.exec_()
+    except Exception as e:
+        print(str(e))
 
 sys.exit(ret)
