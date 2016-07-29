@@ -306,7 +306,7 @@ class MainWidget(Qt.QMainWindow):
 			pieces = urlparse(nameOrUrl)
 			if pieces.scheme != "" or pieces.netloc != "":
 				url = str(nameOrUrl)
-				if url.startswith("http://www.curse.com"):
+				if "curse.com" in url:
 					try:
 						print("retrieving addon informations")
 						response = opener.open(url)
