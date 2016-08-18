@@ -12,4 +12,5 @@ But at least the update is then done via the usuall lcurse way.
 * bs4
 * lxml
 * PyQt5
+
 All requirements can be installed with `pip install -r requirements.txt`
