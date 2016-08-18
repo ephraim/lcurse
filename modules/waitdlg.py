@@ -18,7 +18,6 @@ opener.addheaders = [('User-Agent', 'Mozilla/5.0'), ]
 
 
 def OpenWithRetry(url):
-    print('Opening {}'.format(url))
     count = 0
     maxcount = 5
 
@@ -257,8 +256,6 @@ class UpdateWorker(Qt.QThread):
     def doUpdateCurse(self):
         try:
             settings = Qt.QSettings()
-            print("updating addon {} to version {} ...".format(self.addon[1], self.addon[5][0]))
-            print("getting new version from: {}".format(self.addon[5][1]))
             response = OpenWithRetry(self.addon[5][1])
             filename = "/tmp/{}".format(self.addon[5][1].split('/')[-1])
             dest = "{}/Interface/AddOns/".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
