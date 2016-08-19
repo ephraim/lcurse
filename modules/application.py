@@ -5,6 +5,7 @@ import sys
 import json
 import os
 import re
+from shutil import rmtree
 from urllib.parse import urlparse
 import urllib
 from urllib.request import build_opener, HTTPCookieProcessor, HTTPError
@@ -349,6 +350,20 @@ class MainWidget(Qt.QMainWindow):
                                              str(self.addonList.item(row, 0).text())),
                                          Qt.QMessageBox.Yes, Qt.QMessageBox.No)
         if answer == Qt.QMessageBox.Yes:
+            settings = Qt.QSettings()
+            parent = "{}/Interface/AddOns".format(str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)))
+            contents = os.listdir(parent)
+            addonName =  str(self.addonList.item(row, 0).text())
+            for item in contents:
+                itemDir = "{}/{}".format(parent, item)
+                if os.path.isdir(itemDir) and not item.lower().startswith("blizzard_"):
+                    toc = "{}/{}.toc".format(itemDir, item)
+                    if os.path.exists(toc):
+                        tmp = self.extractAddonMetadataFromTOC(toc)
+                        if re.search(tmp[0], addonName) != None:
+                            rmtree(itemDir)
+            if addonName == "InFlight Taxi Timer":
+                rmtree("{}/InFlight_Load".format(parent))
             self.addonList.removeRow(row)
             self.saveAddons()
 
