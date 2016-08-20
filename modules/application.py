@@ -355,20 +355,57 @@ class MainWidget(Qt.QMainWindow):
             contents = os.listdir(parent)
             addonName =  str(self.addonList.item(row, 0).text())
             deleted = False
+            deleted_addons = []
+            potential_deletions = []
             for item in contents:
                 itemDir = "{}/{}".format(parent, item)
                 if os.path.isdir(itemDir) and not item.lower().startswith("blizzard_"):
                     toc = "{}/{}.toc".format(itemDir, item)
                     if os.path.exists(toc):
                         tmp = self.extractAddonMetadataFromTOC(toc)
-                        if re.match(tmp[0], addonName) != None:
+                        if tmp[0] == addonName:
                             rmtree(itemDir)
+                            deleted_addons.append(item)
                             deleted = True
+
+            self.addonList.removeRow(row)
+
             if not deleted:
                 Qt.QMessageBox.question(self, "No addons removed",
-                                        str(self.tr("No addons matching {} found.\nManual deletion required.")).format(addonName),
+                                        str(self.tr("No addons matching \"{}\" found.\nThe addon might already be removed, or could be going under a different name.\nManual deletion may be required.")).format(addonName),
                                         Qt.QMessageBox.Ok)
-            self.addonList.removeRow(row)
+            else:
+                potential = False
+                for item in contents:
+                    itemDir = "{}/{}".format(parent, item)
+                    if os.path.isdir(itemDir) and not item.lower().startswith("blizzard_"):
+                        toc = "{}/{}.toc".format(itemDir, item)
+                        if os.path.exists(toc):
+                            tmp = self.extractAddonMetadataFromTOC(toc)
+                        for d in deleted_addons:
+                            deletions = list(filter(None, re.split("[_, \-!?:]+", d)))
+                            for word in deletions:
+                                if re.search(word, tmp[0]) != None:
+                                    potential_deletions.append(item)
+                                    potential = True
+                                    break
+                            if potential:
+                                break
+                if potential:
+                    to_delete = '\n'.join(potential_deletions)
+                    removal = Qt.QMessageBox.question(self, "Potential deletion candidates found",
+                                            str(self.tr("Remove the following addons as well?\n{}")).format(to_delete),
+                                            Qt.QMessageBox.Yes, Qt.QMessageBox.No)    
+                    if removal == Qt.QMessageBox.Yes:
+                        for p in potential_deletions:
+                            all_rows = self.addonList.rowCount()
+                            for n in range(0, all_rows):
+                                name = str(self.addonList.item(n, 0).text())
+                                if p == name:
+                                    self.addonList.removeRow(n)
+                                    break
+                            rmtree("{}/{}".format(parent, p))
+
             self.saveAddons()
 
     def setRowColor(self, row, color):
