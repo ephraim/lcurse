@@ -237,7 +237,10 @@ class MainWidget(Qt.QMainWindow):
         for item in contents:
             itemDir = "{}/{}".format(parent, item)
             if os.path.isdir(itemDir) and not item.lower().startswith("blizzard_"):
-                toc = "{}/{}.toc".format(itemDir, item)
+                for files in os.listdir(itemDir):
+                    toc = "{}/{}.toc".format(itemDir, item)
+                    if files.find(".toc") != -1:
+                        toc = "{}/{}".format(itemDir, files)
                 if os.path.exists(toc):
                     tmp = self.extractAddonMetadataFromTOC(toc)
                     if tmp[0] == "":
@@ -360,13 +363,16 @@ class MainWidget(Qt.QMainWindow):
             for item in contents:
                 itemDir = "{}/{}".format(parent, item)
                 if os.path.isdir(itemDir) and not item.lower().startswith("blizzard_"):
-                    toc = "{}/{}.toc".format(itemDir, item)
-                    if os.path.exists(toc):
-                        tmp = self.extractAddonMetadataFromTOC(toc)
-                        if tmp[0] == addonName:
-                            rmtree(itemDir)
-                            deleted_addons.append(item)
-                            deleted = True
+                    for files in os.listdir(itemDir):
+                        toc = "{}/{}.toc".format(itemDir, item)
+                        if files.find(".toc") != -1:
+                            toc = "{}/{}".format(itemDir, files)
+                        if os.path.exists(toc):
+                            tmp = self.extractAddonMetadataFromTOC(toc)
+                            if tmp[0] == addonName:
+                                rmtree(itemDir)
+                                deleted_addons.append(item)
+                                deleted = True
 
             self.addonList.removeRow(row)
 
@@ -379,7 +385,10 @@ class MainWidget(Qt.QMainWindow):
                 for item in contents:
                     itemDir = "{}/{}".format(parent, item)
                     if os.path.isdir(itemDir) and not item.lower().startswith("blizzard_"):
-                        toc = "{}/{}.toc".format(itemDir, item)
+                        for files in os.listdir(itemDir):
+                            toc = "{}/{}.toc".format(itemDir, item)
+                            if files.find(".toc") != -1:
+                                toc = "{}/{}".format(itemDir, files)
                         if os.path.exists(toc):
                             tmp = self.extractAddonMetadataFromTOC(toc)
                         for d in deleted_addons:
