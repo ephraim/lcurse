@@ -305,7 +305,7 @@ class UpdateCatalogDlg(Qt.QDialog):
     def onProgress(self, foundAddons):
         value = self.progress.value() + 1
         self.progress.setValue(value)
-        self.progress.setFormat(self.tr("%%p%% - found Addons: {}").format(foundAddons))
+        self.progress.setFormat(self.tr("%p% - found Addons: {}").format(foundAddons))
 
     @Qt.pyqtSlot(Qt.QVariant)
     def onUpdateCatalogFinished(self, addons):
