@@ -1,0 +1,9 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Name=lcurse
+GenericName=WoW Addon Manager
+Comment=Python script to have a "curse" compatible client for linux
+Exec=lcurse %u
+Type=Application
+Icon=lcurse
+Categories=Game;RolePlaying;
