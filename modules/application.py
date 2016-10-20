@@ -108,6 +108,11 @@ class MainWidget(Qt.QMainWindow):
         actionRemove.setStatusTip(self.tr("Remove currently selected addon"))
         actionRemove.triggered.connect(self.removeAddon)
 
+        actionForceUpdate = Qt.QAction(self.tr("Force update addon"), self)
+        actionForceUpdate.setShortcut("Ctrl+F")
+        actionForceUpdate.setStatusTip(self.tr("Force update of currently selected addon"))
+        actionForceUpdate.triggered.connect(self.forceUpdateAddon)
+
         menuAddons = menubar.addMenu(self.tr("Addons"))
         menuAddons.addAction(actionCheckAll)
         menuAddons.addAction(actionCheck)
@@ -117,6 +122,7 @@ class MainWidget(Qt.QMainWindow):
         menuAddons.addSeparator()
         menuAddons.addAction(actionAdd)
         menuAddons.addAction(actionRemove)
+        menuAddons.addAction(actionForceUpdate)
         toolbar = self.addToolBar(self.tr("Addons"))
         toolbar.addAction(actionUpdateAll)
         toolbar.addAction(actionAdd)
@@ -124,6 +130,7 @@ class MainWidget(Qt.QMainWindow):
         self.addAction(actionCheck)
         self.addAction(actionUpdateAll)
         self.addAction(actionUpdate)
+        self.addAction(actionForceUpdate)
 
         actionCatalogUpdate = Qt.QAction(self.tr("Update Catalog"), self)
         actionCatalogUpdate.setStatusTip(self.tr("Retrieve a list of available addons"))
@@ -454,6 +461,12 @@ class MainWidget(Qt.QMainWindow):
             self.addonList.item(addon[0], 2).setText(data[0])
             self.addonList.item(addon[0], 0).setData(Qt.Qt.UserRole, None)
             self.setRowColor(addon[0], Qt.Qt.green)
+
+    def forceUpdateAddon(self):
+        row = self.addonList.currentRow()
+        print("enforcing update of {:s}".format(self.addonList.item(row, 0).text()))
+        self.addonList.item(row, 2).setText("")
+        self.updateAddon()
 
     def updateAddon(self):
         row = self.addonList.currentRow()
