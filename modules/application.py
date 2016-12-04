@@ -6,8 +6,8 @@ import json
 import os
 import re
 from shutil import rmtree
-from urllib.parse import urlparse
 import urllib
+from urllib.parse import urlparse
 from urllib.request import build_opener, HTTPCookieProcessor, HTTPError
 from http import cookiejar
 from bs4 import BeautifulSoup
@@ -321,7 +321,7 @@ class MainWidget(Qt.QMainWindow):
                 if "curse.com" in url:
                     try:
                         print("retrieving addon informations")
-                        response = opener.open(url)
+                        response = opener.open(urlparse(quote(url, ':/')).geturl())
                         soup = BeautifulSoup(response.read())
                         captions = soup.select(".caption span span span")
                         name = captions[0].string
