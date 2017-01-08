@@ -13,7 +13,7 @@ class AddAddonDlg(Qt.QDialog):
         btnBox.rejected.connect(self.reject)
         box.addWidget(btnBox)
         self.show()
-        if len(availableAddons) > 0:
+        if availableAddons:
             self.completer = Qt.QCompleter([addon[0] for addon in availableAddons], self)
             self.completer.setFilterMode(Qt.Qt.MatchContains)
             self.completer.setCaseSensitivity(Qt.Qt.CaseInsensitive)
