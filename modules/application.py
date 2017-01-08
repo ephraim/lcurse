@@ -323,8 +323,12 @@ class MainWidget(Qt.QMainWindow):
                     print("retrieving addon informations")
                     response = opener.open(urlparse(urlquote(url, ':/')).geturl())
                     soup = BeautifulSoup(response.read())
-                    captions = soup.select(".caption span span span")
-                    name = captions[0].string
+                    try:
+                        captions = soup.select("#project-overview header h2")
+                        name = captions[0].string
+                    except:
+                        print("Curse.com layout has changed.")
+                        pass
                 except HTTPError as e:
                     print(e)
             elif url.endswith(".git"):
