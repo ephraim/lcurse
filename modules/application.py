@@ -7,7 +7,7 @@ import os
 import re
 from shutil import rmtree
 import urllib
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote as urlquote
 from urllib.request import build_opener, HTTPCookieProcessor, HTTPError
 from http import cookiejar
 from bs4 import BeautifulSoup
@@ -321,7 +321,7 @@ class MainWidget(Qt.QMainWindow):
             if "curse.com" in url:
                 try:
                     print("retrieving addon informations")
-                    response = opener.open(urlparse(quote(url, ':/')).geturl())
+                    response = opener.open(urlparse(urlquote(url, ':/')).geturl())
                     soup = BeautifulSoup(response.read())
                     captions = soup.select(".caption span span span")
                     name = captions[0].string
@@ -403,7 +403,7 @@ class MainWidget(Qt.QMainWindow):
                 to_delete = '\n'.join(potential_deletions)
                 removal = Qt.QMessageBox.question(self, "Potential deletion candidates found",
                                         str(self.tr("Remove the following addons as well?\n{}")).format(to_delete),
-                                        Qt.QMessageBox.Yes, Qt.QMessageBox.No)    
+                                        Qt.QMessageBox.Yes, Qt.QMessageBox.No)
                 if removal == Qt.QMessageBox.Yes:
                     for p in potential_deletions:
                         all_rows = self.addonList.rowCount()
