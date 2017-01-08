@@ -322,7 +322,7 @@ class MainWidget(Qt.QMainWindow):
                 try:
                     print("retrieving addon informations")
                     response = opener.open(urlparse(urlquote(url, ':/')).geturl())
-                    soup = BeautifulSoup(response.read())
+                    soup = BeautifulSoup(response.read(), "lxml")
                     try:
                         captions = soup.select("#project-overview header h2")
                         name = captions[0].string
