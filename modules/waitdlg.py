@@ -25,7 +25,7 @@ def OpenWithRetry(url):
     # Retry 5 times
     while count < maxcount:
         try:
-            response = opener.open(urllib.parse.urlparse(urllib.parse.quote(url, ':/')).geturl())
+            response = opener.open(urllib.parse.urlparse(urllib.parse.quote(url, ':/?=')).geturl())
 
             return response
 
@@ -331,6 +331,9 @@ class UpdateCatalogWorker(Qt.QThread):
     def retrievePartialListOfAddons(self, page):
         response = OpenWithRetry("http://www.curse.com/addons/wow?page={}".format(page))
         soup = BeautifulSoup(response.read(), "lxml")
+        # Curse returns a soft-500
+        if soup.find_all("h2", string="Error"):
+            print("Server-side error while getting addon list.")
 
         lastpage = 1
         if page == 1:
