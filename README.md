@@ -9,8 +9,9 @@ As git repos aren't structured the same, you will most probably need to create a
 But at least the update is then done via the usuall lcurse way.
 
 ### Requirements
+* python 3
+* PyQt5
 * bs4
 * lxml
-* PyQt5
 
 All requirements can be installed with `pip install -r requirements.txt`
