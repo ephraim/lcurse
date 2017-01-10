@@ -1,5 +1,6 @@
 from PyQt5 import Qt
 from bs4 import BeautifulSoup
+import urllib.parse
 from urllib.request import build_opener, HTTPCookieProcessor, HTTPError
 from http import cookiejar
 import zipfile
@@ -24,7 +25,7 @@ def OpenWithRetry(url):
     # Retry 5 times
     while count < maxcount:
         try:
-            response = opener.open(str(url))
+            response = opener.open(urllib.parse.urlparse(urllib.parse.quote(url, ':/?=')).geturl())
 
             return response
 
@@ -154,10 +155,10 @@ class CheckWorker(Qt.QThread):
             if self.addon[4]:
                 possibleValues = re.compile("^[12]$")
             lis = soup.findAll("td", attrs={"data-sort-value": possibleValues})
-            if len(lis) > 0:
+            if lis:
                 versionIdx = 0
                 version = lis[versionIdx].parent.contents[0].contents[0].string
-                if len(lis) > 1 and pattern.search(version) != None and pattern.sub("", version) == \
+                if len(lis) > 1 and pattern.search(version) and pattern.sub("", version) == \
                         lis[1].parent.contents[0].contents[0].string:
                     versionIdx = 1
                     version = lis[versionIdx].parent.contents[0].contents[0].string
@@ -180,7 +181,7 @@ class CheckWorker(Qt.QThread):
         elif self.addon[2].endswith(".git"):
             result = self.needsUpdateGit()
 
-        if result != None:
+        if result:
             self.checkFinished.emit(self.addon, result[0], result[1])
         else:
             self.checkFinished.emit(self.addon, False, False)
@@ -330,11 +331,14 @@ class UpdateCatalogWorker(Qt.QThread):
     def retrievePartialListOfAddons(self, page):
         response = OpenWithRetry("http://www.curse.com/addons/wow?page={}".format(page))
         soup = BeautifulSoup(response.read(), "lxml")
+        # Curse returns a soft-500
+        if soup.find_all("h2", string="Error"):
+            print("Server-side error while getting addon list.")
 
         lastpage = 1
         if page == 1:
             pager = soup.select("ul.b-pagination-list.paging-list.j-tablesorter-pager.j-listing-pagination li")
-            if len(pager) > 0:
+            if pager:
                 lastpage = int(pager[len(pager) - 2].contents[0].contents[0])
 
         links = soup.select("li .title h4 a")  # li .title h4 a")

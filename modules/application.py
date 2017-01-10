@@ -6,8 +6,8 @@ import json
 import os
 import re
 from shutil import rmtree
-from urllib.parse import urlparse
 import urllib
+from urllib.parse import urlparse, quote as urlquote
 from urllib.request import build_opener, HTTPCookieProcessor, HTTPError
 from http import cookiejar
 from bs4 import BeautifulSoup
@@ -197,13 +197,13 @@ class MainWidget(Qt.QMainWindow):
             while line != "":
                 line = line.strip()
                 m = curse_title_re.match(line)
-                if m != None:
+                if m:
                     name = m.group(1)
                     line = f.readline()
                     continue
                 if name == "":
                     m = title_re.match(line)
-                    if m != None:
+                    if m:
                         name = m.group(1)
                         line = f.readline()
                         continue
@@ -216,18 +216,18 @@ class MainWidget(Qt.QMainWindow):
                         continue
 
                 m = curse_version_re.match(line)
-                if m != None:
+                if m:
                     version = m.group(1)
                     line = f.readline()
                     continue
                 if version == "":
                     m = version_re.match(line)
-                    if m != None:
+                    if m:
                         version = m.group(1)
                         line = f.readline()
                         continue
                 m = curse_re.match(line)
-                if m != None:
+                if m:
                     curseId = m.group(1)
                     line = f.readline()
                     continue
@@ -237,10 +237,10 @@ class MainWidget(Qt.QMainWindow):
         curseId = self.removeStupidStuff(curseId)
 
         uri = "http://mods.curse.com/addons/wow/{}".format(name.lower().replace(" (bundled)","").replace(" ", "-"))
-        if curseId != "":
+        if curseId:
             uri = "http://mods.curse.com/addons/wow/{}".format(curseId)
 
-        if name == "" or version == "":
+        if not name or not version:
             print("not enough informations found for addon in toc: {}".format(toc))
             return ["", "", ""]
 
@@ -260,7 +260,7 @@ class MainWidget(Qt.QMainWindow):
                         continue
                     (name, uri, version) = tmp
                     row = self.addonList.rowCount()
-                    if len(self.addonList.findItems(name, Qt.Qt.MatchExactly)) == 0:
+                    if not self.addonList.findItems(name, Qt.Qt.MatchExactly):
                         self.addonList.setRowCount(row + 1)
                         self.insertAddon(row, name, uri, version, False)
         self.addonList.resizeColumnsToContents()
@@ -289,20 +289,19 @@ class MainWidget(Qt.QMainWindow):
         if os.path.exists(self.addonsFile):
             with open(self.addonsFile) as f:
                 addons = json.load(f)
-        if addons != None:
-            self.addonList.setRowCount(len(addons))
-            for (row, addon) in enumerate(addons):
-                self.addonList.setItem(row, 0, Qt.QTableWidgetItem(addon["name"]))
-                self.addonList.setItem(row, 1, Qt.QTableWidgetItem(addon["uri"]))
-                self.addonList.setItem(row, 2, Qt.QTableWidgetItem(addon["version"]))
-                allowBeta = False
-                if "allowbeta" in addon:
-                    allowBeta = addon["allowbeta"]
-                allowBetaItem = Qt.QTableWidgetItem()
-                allowBetaItem.setCheckState(Qt.Qt.Checked if allowBeta else Qt.Qt.Unchecked)
-                self.addonList.setItem(row, 3, allowBetaItem)
-            self.addonList.resizeColumnsToContents()
-            self.adjustSize()
+        if not addons:
+            return
+        self.addonList.setRowCount(len(addons))
+        for (row, addon) in enumerate(addons):
+            self.addonList.setItem(row, 0, Qt.QTableWidgetItem(addon["name"]))
+            self.addonList.setItem(row, 1, Qt.QTableWidgetItem(addon["uri"]))
+            self.addonList.setItem(row, 2, Qt.QTableWidgetItem(addon["version"]))
+            allowBeta = addon.get("allowbeta", False)
+            allowBetaItem = Qt.QTableWidgetItem()
+            allowBetaItem.setCheckState(Qt.Qt.Checked if allowBeta else Qt.Qt.Unchecked)
+            self.addonList.setItem(row, 3, allowBetaItem)
+        self.addonList.resizeColumnsToContents()
+        self.adjustSize()
 
     def saveAddons(self):
         addons = []
@@ -321,42 +320,47 @@ class MainWidget(Qt.QMainWindow):
     def addAddon(self):
         addAddonDlg = addaddondlg.AddAddonDlg(self, self.availableAddons)
         result = addAddonDlg.exec_()
-        if result == Qt.QDialog.Accepted:
-            name = ""
-            nameOrUrl = addAddonDlg.getText()
-            pieces = urlparse(nameOrUrl)
-            if pieces.scheme != "" or pieces.netloc != "":
-                url = str(nameOrUrl)
-                if "curse.com" in url:
-                    try:
-                        print("retrieving addon informations")
-                        response = opener.open(url)
-                        soup = BeautifulSoup(response.read())
-                        captions = soup.select(".caption span span span")
-                        name = captions[0].string
-                    except HTTPError as e:
-                        print(e)
-                elif url.endswith(".git"):
-                    name = os.path.basename(url)[:-4]
-            else:
-                name = nameOrUrl
+        if result != Qt.QDialog.Accepted:
+            return
+        name = ""
+        nameOrUrl = addAddonDlg.getText()
+        pieces = urlparse(nameOrUrl)
+        if pieces.scheme or pieces.netloc:
+            url = str(nameOrUrl)
+            if "curse.com" in url:
                 try:
-                    for item in self.availableAddons:
-                        if item[0] == name:
-                            url = item[1]
-                except IndexError:
-                    print("can't handle: " + name)
-                    name = ""
+                    print("retrieving addon informations")
+                    response = opener.open(urlparse(urlquote(url, ':/')).geturl())
+                    soup = BeautifulSoup(response.read(), "lxml")
+                    try:
+                        captions = soup.select("#project-overview header h2")
+                        name = captions[0].string
+                    except:
+                        print("Curse.com layout has changed.")
+                        pass
+                except HTTPError as e:
+                    print(e)
+            elif url.endswith(".git"):
+                name = os.path.basename(url)[:-4]
+        else:
+            name = nameOrUrl
+            try:
+                for item in self.availableAddons:
+                    if item[0] == name:
+                        url = item[1]
+            except IndexError:
+                print("can't handle: " + name)
+                name = ""
 
-            if name != "":
-                newrow = self.addonList.rowCount()
-                self.addonList.insertRow(newrow)
-                self.addonList.setItem(newrow, 0, Qt.QTableWidgetItem(name))
-                self.addonList.setItem(newrow, 1, Qt.QTableWidgetItem(url))
-                self.addonList.setItem(newrow, 2, Qt.QTableWidgetItem(""))
-                allowBetaItem = Qt.QTableWidgetItem()
-                allowBetaItem.setCheckState(Qt.Qt.Unchecked)
-                self.addonList.setItem(newrow, 3, allowBetaItem)
+        if name:
+            newrow = self.addonList.rowCount()
+            self.addonList.insertRow(newrow)
+            self.addonList.setItem(newrow, 0, Qt.QTableWidgetItem(name))
+            self.addonList.setItem(newrow, 1, Qt.QTableWidgetItem(url))
+            self.addonList.setItem(newrow, 2, Qt.QTableWidgetItem(""))
+            allowBetaItem = Qt.QTableWidgetItem()
+            allowBetaItem.setCheckState(Qt.Qt.Unchecked)
+            self.addonList.setItem(newrow, 3, allowBetaItem)
 
     def removeAddon(self):
         row = self.addonList.currentRow()
@@ -365,64 +369,65 @@ class MainWidget(Qt.QMainWindow):
                                          str(self.tr("Do you really want to remove the following addon?\n{}")).format(
                                              str(self.addonList.item(row, 0).text())),
                                          Qt.QMessageBox.Yes, Qt.QMessageBox.No)
-        if answer == Qt.QMessageBox.Yes:
-            settings = Qt.QSettings()
-            parent = "{}/Interface/AddOns".format(str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)))
-            contents = os.listdir(parent)
-            addonName =  str(self.addonList.item(row, 0).text())
-            deleted = False
-            deleted_addons = []
-            potential_deletions = []
+        if answer != Qt.QMessageBox.Yes:
+            return
+        settings = Qt.QSettings()
+        parent = "{}/Interface/AddOns".format(str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)))
+        contents = os.listdir(parent)
+        addonName =  str(self.addonList.item(row, 0).text())
+        deleted = False
+        deleted_addons = []
+        potential_deletions = []
+        for item in contents:
+            itemDir = "{}/{}".format(parent, item)
+            if os.path.isdir(itemDir) and not item.lower().startswith("blizzard_"):
+                toc = "{}/{}.toc".format(itemDir, item)
+                if os.path.exists(toc):
+                    tmp = self.extractAddonMetadataFromTOC(toc)
+                    if tmp[0] == addonName:
+                        rmtree(itemDir)
+                        deleted_addons.append(item)
+                        deleted = True
+
+        self.addonList.removeRow(row)
+
+        if not deleted:
+            Qt.QMessageBox.question(self, "No addons removed",
+                                    str(self.tr("No addons matching \"{}\" found.\nThe addon might already be removed, or could be going under a different name.\nManual deletion may be required.")).format(addonName),
+                                    Qt.QMessageBox.Ok)
+        else:
+            potential = False
             for item in contents:
                 itemDir = "{}/{}".format(parent, item)
                 if os.path.isdir(itemDir) and not item.lower().startswith("blizzard_"):
                     toc = "{}/{}.toc".format(itemDir, item)
                     if os.path.exists(toc):
                         tmp = self.extractAddonMetadataFromTOC(toc)
-                        if tmp[0] == addonName:
-                            rmtree(itemDir)
-                            deleted_addons.append(item)
-                            deleted = True
-
-            self.addonList.removeRow(row)
-
-            if not deleted:
-                Qt.QMessageBox.question(self, "No addons removed",
-                                        str(self.tr("No addons matching \"{}\" found.\nThe addon might already be removed, or could be going under a different name.\nManual deletion may be required.")).format(addonName),
-                                        Qt.QMessageBox.Ok)
-            else:
-                potential = False
-                for item in contents:
-                    itemDir = "{}/{}".format(parent, item)
-                    if os.path.isdir(itemDir) and not item.lower().startswith("blizzard_"):
-                        toc = "{}/{}.toc".format(itemDir, item)
-                        if os.path.exists(toc):
-                            tmp = self.extractAddonMetadataFromTOC(toc)
-                        for d in deleted_addons:
-                            deletions = list(filter(None, re.split("[_, \-!?:]+", d)))
-                            for word in deletions:
-                                if re.search(word, tmp[0]) != None:
-                                    potential_deletions.append(item)
-                                    potential = True
-                                    break
-                            if potential:
+                    for d in deleted_addons:
+                        deletions = list(filter(None, re.split("[_, \-!?:]+", d)))
+                        for word in deletions:
+                            if re.search(word, tmp[0]):
+                                potential_deletions.append(item)
+                                potential = True
                                 break
-                if potential:
-                    to_delete = '\n'.join(potential_deletions)
-                    removal = Qt.QMessageBox.question(self, "Potential deletion candidates found",
-                                            str(self.tr("Remove the following addons as well?\n{}")).format(to_delete),
-                                            Qt.QMessageBox.Yes, Qt.QMessageBox.No)
-                    if removal == Qt.QMessageBox.Yes:
-                        for p in potential_deletions:
-                            all_rows = self.addonList.rowCount()
-                            for n in range(0, all_rows):
-                                name = str(self.addonList.item(n, 0).text())
-                                if p == name:
-                                    self.addonList.removeRow(n)
-                                    break
-                            rmtree("{}/{}".format(parent, p))
+                        if potential:
+                            break
+            if potential:
+                to_delete = '\n'.join(potential_deletions)
+                removal = Qt.QMessageBox.question(self, "Potential deletion candidates found",
+                                        str(self.tr("Remove the following addons as well?\n{}")).format(to_delete),
+                                        Qt.QMessageBox.Yes, Qt.QMessageBox.No)
+                if removal == Qt.QMessageBox.Yes:
+                    for p in potential_deletions:
+                        all_rows = self.addonList.rowCount()
+                        for n in range(0, all_rows):
+                            name = str(self.addonList.item(n, 0).text())
+                            if p == name:
+                                self.addonList.removeRow(n)
+                                break
+                        rmtree("{}/{}".format(parent, p))
 
-            self.saveAddons()
+        self.saveAddons()
 
     def setRowColor(self, row, color):
         self.addonList.item(row, 0).setBackground(color)
@@ -433,7 +438,7 @@ class MainWidget(Qt.QMainWindow):
         if result:
             self.setRowColor(addon[0], Qt.Qt.yellow)
             self.addonList.item(addon[0], 0).setData(Qt.Qt.UserRole, data)
-        elif data == None:
+        elif data is None:
             self.setRowColor(addon[0], Qt.Qt.red)
         else:
             self.setRowColor(addon[0], Qt.Qt.white)
@@ -481,11 +486,11 @@ class MainWidget(Qt.QMainWindow):
         row = self.addonList.currentRow()
         addons = []
         data = self.addonList.item(row, 0).data(Qt.Qt.UserRole)
-        if data == None:
+        if not data:
             self.checkAddonForUpdate()
 
         data = self.addonList.item(row, 0).data(Qt.Qt.UserRole)
-        if data == None:
+        if not data:
             return
 
         name = self.addonList.item(row, 0).text()
@@ -494,7 +499,7 @@ class MainWidget(Qt.QMainWindow):
         allowBeta = bool(self.addonList.item(row, 3).checkState() == Qt.Qt.Checked)
         addons.append((row, name, uri, version, allowBeta, data))
 
-        if len(addons):
+        if addons:
             updateDlg = waitdlg.UpdateDlg(self, addons)
             updateDlg.updateFinished.connect(self.onUpdateFinished)
             updateDlg.exec_()
@@ -512,7 +517,7 @@ class MainWidget(Qt.QMainWindow):
                 allowBeta = bool(self.addonList.item(row, 3).checkState() == Qt.Qt.Checked)
                 addons.append((row, name, uri, version, allowBeta, data))
 
-        if len(addons):
+        if addons:
             updateDlg = waitdlg.UpdateDlg(self, addons)
             updateDlg.updateFinished.connect(self.onUpdateFinished)
             updateDlg.exec_()
