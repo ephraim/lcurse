@@ -8,6 +8,7 @@ import defines
 import os
 import re
 import time
+import tempfile
 from _thread import start_new_thread
 from threading import Lock
 from subprocess import check_output, check_call
@@ -258,7 +259,7 @@ class UpdateWorker(Qt.QThread):
         try:
             settings = Qt.QSettings()
             response = OpenWithRetry(self.addon[5][1])
-            filename = "/tmp/{}".format(self.addon[5][1].split('/')[-1])
+            filename = "{}/{}".format(tempfile.gettempdir(), self.addon[5][1].split('/')[-1])
             dest = "{}/Interface/AddOns/".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
             with open(filename, 'wb') as zipped:
                 zipped.write(response.read())

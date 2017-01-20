@@ -191,7 +191,7 @@ class MainWidget(Qt.QMainWindow):
         curse_version_re = re.compile(r"^## X-Curse-Packaged-Version: (.*)$")
         version_re = re.compile(r"^## Version: (.*)$")
         curse_re = re.compile(r"^## X-Curse-Project-ID: (.*)$")
-        with open(toc) as f:
+        with open(toc, encoding="utf8") as f:
             line = f.readline()
             while line != "":
                 line = line.strip()
