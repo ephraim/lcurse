@@ -100,6 +100,11 @@ class MainWidget(Qt.QMainWindow):
         actionUpdate.setStatusTip(self.tr("Update currently selected addons if needed"))
         actionUpdate.triggered.connect(self.updateAddon)
 
+        actionForceUpdate = Qt.QAction(self.tr("Force update addon"), self)
+        actionForceUpdate.setShortcut("Ctrl+F")
+        actionForceUpdate.setStatusTip(self.tr("Force update addon even if not needed"))
+        actionForceUpdate.triggered.connect(self.forceUpdateAddon)
+
         actionAdd = Qt.QAction(self.tr("Add addon"), self)
         actionAdd.setStatusTip(self.tr("Add a new addon"))
         actionAdd.triggered.connect(self.addAddon)
@@ -119,6 +124,7 @@ class MainWidget(Qt.QMainWindow):
         menuAddons.addSeparator()
         menuAddons.addAction(actionUpdateAll)
         menuAddons.addAction(actionUpdate)
+        menuAddons.addAction(actionForceUpdate)
         menuAddons.addSeparator()
         menuAddons.addAction(actionAdd)
         menuAddons.addAction(actionRemove)
@@ -491,6 +497,36 @@ class MainWidget(Qt.QMainWindow):
         addons.append((row, name, uri, version, allowBeta, data))
 
         if addons:
+            updateDlg = waitdlg.UpdateDlg(self, addons)
+            updateDlg.updateFinished.connect(self.onUpdateFinished)
+            updateDlg.exec_()
+            self.saveAddons()
+
+    def forceUpdateAddon(self):
+        row = self.addonList.currentRow()
+        addons = []
+        name = self.addonList.item(row, 0).text()
+        uri = self.addonList.item(row, 1).text()
+        version = None
+        allowBeta = bool(self.addonList.item(row, 3).checkState() == Qt.Qt.Checked)
+        addons.append((row, name, uri, version, allowBeta))
+        data = self.addonList.item(row, 0).data(Qt.Qt.UserRole)
+        if data == None:
+            checkDlg = waitdlg.CheckDlg(self, addons)
+            checkDlg.checkFinished.connect(self.onCheckFinished)
+            checkDlg.exec_()
+
+        data = self.addonList.item(row, 0).data(Qt.Qt.UserRole)
+        if data == None:
+            return
+
+        name = self.addonList.item(row, 0).text()
+        uri = self.addonList.item(row, 1).text()
+        version = self.addonList.item(row, 2).text()
+        allowBeta = bool(self.addonList.item(row, 3).checkState() == Qt.Qt.Checked)
+        addons.append((row, name, uri, version, allowBeta, data))
+
+        if len(addons):
             updateDlg = waitdlg.UpdateDlg(self, addons)
             updateDlg.updateFinished.connect(self.onUpdateFinished)
             updateDlg.exec_()
