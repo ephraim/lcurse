@@ -188,6 +188,7 @@ class MainWidget(Qt.QMainWindow):
         (name, uri, version, curseId) = ("", "", "", "")
         title_re = re.compile(r"^## Title: (.*)$")
         curse_title_re = re.compile(r"^## X-Curse-Project-Name: (.*)$")
+        title_re_partof = re.compile(r"^## X-Part-Of: (.*)$")
         curse_version_re = re.compile(r"^## X-Curse-Packaged-Version: (.*)$")
         version_re = re.compile(r"^## Version: (.*)$")
         curse_re = re.compile(r"^## X-Curse-Project-ID: (.*)$")
@@ -206,6 +207,14 @@ class MainWidget(Qt.QMainWindow):
                         name = m.group(1)
                         line = f.readline()
                         continue
+                else:
+                    #check if .toc has partof tag, replace name for addons with multiple modules
+                    m_partof = title_re_partof.match(line)
+                    if m_partof != None:
+                        name = m_partof.group(1) + " (bundled)"
+                        line = f.readline()
+                        continue
+
                 m = curse_version_re.match(line)
                 if m:
                     version = m.group(1)
@@ -227,7 +236,7 @@ class MainWidget(Qt.QMainWindow):
         name = self.removeStupidStuff(name)
         curseId = self.removeStupidStuff(curseId)
 
-        uri = "http://mods.curse.com/addons/wow/{}".format(name.lower().replace(" ", "-"))
+        uri = "http://mods.curse.com/addons/wow/{}".format(name.lower().replace(" (bundled)","").replace(" ", "-"))
         if curseId:
             uri = "http://mods.curse.com/addons/wow/{}".format(curseId)
 
