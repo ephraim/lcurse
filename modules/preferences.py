@@ -1,5 +1,5 @@
 from PyQt5 import Qt
-import defines
+from modules import defines
 
 
 class PreferencesDlg(Qt.QDialog):
