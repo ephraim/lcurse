@@ -14,10 +14,10 @@ from bs4 import BeautifulSoup
 
 from PyQt5 import Qt
 
-import preferences
-import addaddondlg
-import waitdlg
-import defines
+from modules import preferences
+from modules import addaddondlg
+from modules import waitdlg
+from modules import defines
 
 opener = build_opener(HTTPCookieProcessor(cookiejar.CookieJar()))
 # default User-Agent ('Python-urllib/2.6') will *not* work

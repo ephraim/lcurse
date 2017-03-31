@@ -4,7 +4,7 @@ import urllib.parse
 from urllib.request import build_opener, HTTPCookieProcessor, HTTPError
 from http import cookiejar
 import zipfile
-import defines
+from modules import defines
 import os
 import re
 import time
