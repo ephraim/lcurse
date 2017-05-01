@@ -309,14 +309,22 @@ class MainWidget(Qt.QMainWindow):
             json.dump(addons, f)
 
     def addAddon(self):
+        url = None
         addAddonDlg = addaddondlg.AddAddonDlg(self, self.availableAddons)
         result = addAddonDlg.exec_()
         if result != Qt.QDialog.Accepted:
             return
-        name = ""
         nameOrUrl = addAddonDlg.getText()
-        pieces = urlparse(nameOrUrl)
-        if pieces.scheme or pieces.netloc:
+        name = nameOrUrl
+        try:
+            for item in self.availableAddons:
+                if item[0] == name:
+                    url = item[1]
+        except IndexError:
+            print("can't handle: " + name)
+            name = ""
+        
+        if url == None:
             url = str(nameOrUrl)
             if "curse.com" in url:
                 try:
@@ -333,15 +341,6 @@ class MainWidget(Qt.QMainWindow):
                     print(e)
             elif url.endswith(".git"):
                 name = os.path.basename(url)[:-4]
-        else:
-            name = nameOrUrl
-            try:
-                for item in self.availableAddons:
-                    if item[0] == name:
-                        url = item[1]
-            except IndexError:
-                print("can't handle: " + name)
-                name = ""
 
         if name:
             newrow = self.addonList.rowCount()
