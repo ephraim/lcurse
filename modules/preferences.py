@@ -7,6 +7,8 @@ class PreferencesDlg(Qt.QDialog):
         super(PreferencesDlg, self).__init__(parent)
         self.settings = Qt.QSettings()
 
+        print(defines)
+
         layout = Qt.QVBoxLayout(self)
 
         layout.addWidget(Qt.QLabel(self.tr("WoW Install Folder:"), self))
@@ -24,6 +26,10 @@ class PreferencesDlg(Qt.QDialog):
         self.maxthreads.setMaximum(1000)
         self.maxthreads.setValue(self.getMaxThreads())
         layout.addWidget(self.maxthreads)
+
+        layout.addWidget(Qt.QLabel(self.tr("Current Toc Number:"), self))
+        self.currenttoc = Qt.QLineEdit(str(self.getTocVersion()),self)
+        layout.addWidget(self.currenttoc)
 
         bottom = Qt.QHBoxLayout()
         bottom.addSpacing(100)
@@ -65,7 +71,14 @@ class PreferencesDlg(Qt.QDialog):
     def setWowFolder(self, newfolder):
         return self.settings.setValue(defines.WOW_FOLDER_KEY, newfolder)
 
+    def getTocVersion(self):
+        return self.settings.value(defines.WOW_TOC_KEY,70200)
+    
+    def setTocVersion(self,newtoc):
+        return self.settings.setValue(defines.WOW_TOC_KEY,int(newtoc))
+    
     def accept(self):
         self.setWowFolder(self.wowInstallFolder.text())
         self.setMaxThreads(self.maxthreads.value())
+        self.setTocVersion(self.currenttoc.value())
         super(PreferencesDlg, self).accept()

@@ -18,11 +18,40 @@ from modules import preferences
 from modules import addaddondlg
 from modules import waitdlg
 from modules import defines
+#from PyQt4.uic.Compiler.qtproxies import QtGui
+from PyQt5 import QtGui
 
 opener = build_opener(HTTPCookieProcessor(cookiejar.CookieJar()))
 # default User-Agent ('Python-urllib/2.6') will *not* work
 opener.addheaders = [('User-Agent', 'Mozilla/5.0'), ]
 
+class Grid(Qt.QTableWidget):
+    def __init__(self, parent=None):
+        self.parent = parent
+        super().__init__(parent.mainWidget)
+    
+    def contextMenuEvent(self,event):
+        self.menu = Qt.QMenu(self)
+        row=self.currentRow()
+        name=self.item(row,0).text()
+        msg=self.tr("Remove from list")
+        removefromlistAction = Qt.QAction(msg,self)
+        removefromlistAction.setStatusTip(self.tr("Leave all files unaltered, useful for subaddons"))
+        removefromlistAction.triggered.connect(self.removeFromList)
+        self.menu.addAction(self.tr("Context menu for {}").format(name))
+        self.menu.addAction(removefromlistAction)
+        actionUpdate = Qt.QAction(self.tr("Update addon"), self)
+        actionUpdate.setStatusTip(self.tr("Update currently selected addons if needed"))
+        actionUpdate.triggered.connect(self.parent.updateAddon)        
+        self.menu.addAction(actionUpdate)
+        self.menu.popup(Qt.QCursor.pos())
+
+    def removeFromList(self):
+        row = self.currentRow()
+        self.removeRow(row)
+        self.parent.saveAddons()
+        
+        
 
 class MainWidget(Qt.QMainWindow):
     def __init__(self):
@@ -140,14 +169,15 @@ class MainWidget(Qt.QMainWindow):
         toolbar = self.addToolBar(self.tr("Catalog"))
         toolbar.addAction(actionCatalogUpdate)
 
-        self.addonList = Qt.QTableWidget(self.mainWidget)
-        self.addonList.setColumnCount(4)
-        self.addonList.setHorizontalHeaderLabels(["Name", "Url", "Version", "Allow Beta"])
+        self.addonList = Grid(self)
 
-        self.resize(1030, 815)
+        self.addonList.setColumnCount(5)
+        self.addonList.setHorizontalHeaderLabels(["Name", "Url", "Version", "Toc", "Allow Beta"])
+
+        self.resize(1070, 815)
         screen = Qt.QDesktopWidget().screenGeometry()
         size = self.geometry()
-        self.move((screen.width() - size.width()) / 2, (screen.height() - size.height()) / 4)
+        self.move((screen.width() - size.width()) / 2, (screen.height() - size.height()) / 5)
         self.setWindowTitle('WoW!Curse')
 
         box.addWidget(self.addonList)
@@ -185,12 +215,14 @@ class MainWidget(Qt.QMainWindow):
         return s
 
     def extractAddonMetadataFromTOC(self, toc):
-        (name, uri, version, curseId) = ("", "", "", "")
-        title_re = re.compile(r"^## Title: (.*)$")
-        curse_title_re = re.compile(r"^## X-Curse-Project-Name: (.*)$")
-        curse_version_re = re.compile(r"^## X-Curse-Packaged-Version: (.*)$")
-        version_re = re.compile(r"^## Version: (.*)$")
-        curse_re = re.compile(r"^## X-Curse-Project-ID: (.*)$")
+        (name, uri, version, curseId, tocversion) = ("", "", "", "", "")
+        title_re = re.compile(r"^## *Title: *(.*)$")
+        title2_re = re.compile(r"^## *Title.....: *(.*)$")
+        curse_title_re = re.compile(r"^## *X-Curse-Project-Name: *(.*)$")
+        curse_version_re = re.compile(r"^## *X-Curse-Packaged-Version: *(.*)$")
+        version_re = re.compile(r"^## *Version: *(.*)$")
+        curse_re = re.compile(r"^## °X-Curse-Project-ID: *(.*)$")
+        tocversion_re = re.compile(r"^## *Interface: *(.*)$")
         with open(toc, encoding="utf8", errors='replace') as f:
             line = f.readline()
             while line != "":
@@ -202,6 +234,12 @@ class MainWidget(Qt.QMainWindow):
                     continue
                 if name == "":
                     m = title_re.match(line)
+                    if m:
+                        name = m.group(1)
+                        line = f.readline()
+                        continue
+                if name == "":
+                    m = title2_re.match(line)
                     if m:
                         name = m.group(1)
                         line = f.readline()
@@ -222,20 +260,26 @@ class MainWidget(Qt.QMainWindow):
                     curseId = m.group(1)
                     line = f.readline()
                     continue
+                m = tocversion_re.match(line)
+                if m:
+                    tocversion = m.group(1)
+                    line = f.readline()
+                    continue
                 line = f.readline()
-
+            if not version:
+                version="n/a"
+            if not name:
+                print("not enough informations found for addon  {}\n(version={},name={},toc={})\n".format(toc,version,name,tocversion))
         name = self.removeStupidStuff(name)
         curseId = self.removeStupidStuff(curseId)
-
+        
         uri = "http://mods.curse.com/addons/wow/{}".format(name.lower().replace(" ", "-"))
         if curseId:
             uri = "http://mods.curse.com/addons/wow/{}".format(curseId)
+        
+            #return ["", "", "", ""]
 
-        if not name or not version:
-            print("not enough informations found for addon in toc: {}".format(toc))
-            return ["", "", ""]
-
-        return [name, uri, version]
+        return [name, uri, version, tocversion]
 
     def importAddons(self):
         settings = Qt.QSettings()
@@ -249,11 +293,11 @@ class MainWidget(Qt.QMainWindow):
                     tmp = self.extractAddonMetadataFromTOC(toc)
                     if tmp[0] == "":
                         continue
-                    (name, uri, version) = tmp
+                    (name, uri, version, tocVersion) = tmp
                     row = self.addonList.rowCount()
                     if not self.addonList.findItems(name, Qt.Qt.MatchExactly):
                         self.addonList.setRowCount(row + 1)
-                        self.insertAddon(row, name, uri, version, False)
+                        self.insertAddon(row, name, uri, version, tocVersion, False)
         self.addonList.resizeColumnsToContents()
         self.saveAddons()
 
@@ -261,13 +305,14 @@ class MainWidget(Qt.QMainWindow):
         pref = preferences.PreferencesDlg(self)
         pref.exec_()
 
-    def insertAddon(self, row, name, uri, version, allowBeta):
+    def insertAddon(self, row, name, uri, version, tocVersion, allowBeta):
         self.addonList.setItem(row, 0, Qt.QTableWidgetItem(name))
         self.addonList.setItem(row, 1, Qt.QTableWidgetItem(uri))
         self.addonList.setItem(row, 2, Qt.QTableWidgetItem(version))
+        self.addonList.setItem(row, 3, Qt.QTableWidgetItem(tocVersion))
         allowBetaItem = Qt.QTableWidgetItem()
         allowBetaItem.setCheckState(Qt.Qt.Checked if allowBeta else Qt.Qt.Unchecked)
-        self.addonList.setItem(row, 3, allowBetaItem)
+        self.addonList.setItem(row, 4, allowBetaItem)
 
     def loadAddonCatalog(self):
         if os.path.exists(defines.LCURSE_ADDON_CATALOG):
@@ -279,22 +324,50 @@ class MainWidget(Qt.QMainWindow):
         addons = None
         if os.path.exists(self.addonsFile):
             with open(self.addonsFile) as f:
-                addons = json.load(f)
+                data = json.load(f)
+                try:
+                    dbversion = data['dbversion']
+                    addons = data['addons']
+                except:
+                    print("Warning, old database, will convert")
+                    dbversion = 0
+                    addons = data 
         if not addons:
             return
         self.addonList.setRowCount(len(addons))
+        tocs=self.updateDatabaseFormat(dbversion-10)
         for (row, addon) in enumerate(addons):
             self.addonList.setItem(row, 0, Qt.QTableWidgetItem(addon["name"]))
             self.addonList.setItem(row, 1, Qt.QTableWidgetItem(addon["uri"]))
             self.addonList.setItem(row, 2, Qt.QTableWidgetItem(addon["version"]))
+            try:
+                if addon["toc"] == "":
+                    addon["toc"] = "n/a"
+                self.addonList.setItem(row, 3, Qt.QTableWidgetItem(addon["toc"]))
+                
+            except Exception as e:
+                addon["toc"] = "n/a"
+            if addon["toc"] == "n/a":
+                try:
+                    self.addonList.setItem(row, 3, Qt.QTableWidgetItem(tocs[addon["name"]]["toc"]))
+                except Exception as e:
+                    self.addonList.setItem(row, 3, Qt.QTableWidgetItem("n/a"))
+            toc=self.addonList.item(row, 3).text()
+            if (toc=="n/a"): 
+                self.addonList.item(row, 3).setForeground(Qt.Qt.black)
+            elif ( toc == defines.TOC):
+                self.addonList.item(row, 3).setForeground(Qt.Qt.blue)
+            else:
+                self.addonList.item(row, 3).setForeground(Qt.Qt.red)                    
             allowBeta = addon.get("allowbeta", False)
             allowBetaItem = Qt.QTableWidgetItem()
             allowBetaItem.setCheckState(Qt.Qt.Checked if allowBeta else Qt.Qt.Unchecked)
-            self.addonList.setItem(row, 3, allowBetaItem)
+            self.addonList.setItem(row, 4, allowBetaItem)
         self.addonList.resizeColumnsToContents()
         self.adjustSize()
-
+        
     def saveAddons(self):
+        print("Saving addons to ",self.addonsFile)
         addons = []
         self.addonList.sortItems(0)
         for row in iter(range(self.addonList.rowCount())):
@@ -302,11 +375,14 @@ class MainWidget(Qt.QMainWindow):
                 name=str(self.addonList.item(row, 0).text()),
                 uri=str(self.addonList.item(row, 1).text()),
                 version=str(self.addonList.item(row, 2).text()),
-                allowbeta=bool(self.addonList.item(row, 3).checkState() == Qt.Qt.Checked)
+                toc=str(self.addonList.item(row,3).text()),
+                allowbeta=bool(self.addonList.item(row, 4).checkState() == Qt.Qt.Checked)
             ))
-
+        data={}
+        data['addons'] = addons
+        data['dbversion'] = defines.LCURSE_DBVERSION
         with open(self.addonsFile, "w") as f:
-            json.dump(addons, f)
+            json.dump(data, f,indent=1)
 
     def addAddon(self):
         url = None
@@ -348,9 +424,32 @@ class MainWidget(Qt.QMainWindow):
             self.addonList.setItem(newrow, 0, Qt.QTableWidgetItem(name))
             self.addonList.setItem(newrow, 1, Qt.QTableWidgetItem(url))
             self.addonList.setItem(newrow, 2, Qt.QTableWidgetItem(""))
+            self.addonList.setItem(newrow, 3, Qt.QTableWidgetItem(""))
             allowBetaItem = Qt.QTableWidgetItem()
             allowBetaItem.setCheckState(Qt.Qt.Unchecked)
-            self.addonList.setItem(newrow, 3, allowBetaItem)
+            self.addonList.setItem(newrow, 4, allowBetaItem)
+
+    def updateDatabaseFormat(self,oldVersion):
+        print("Db version is ", oldVersion, " vs ", defines.LCURSE_DBVERSION)
+        if oldVersion >= defines.LCURSE_DBVERSION:
+            return {}
+        print("Database update!")
+        settings = Qt.QSettings()
+        parent = "{}/Interface/AddOns".format(str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)))
+        contents = os.listdir(parent)
+        contents.sort()
+        tocversions={}
+        for item in contents:
+            itemDir = "{}/{}".format(parent, item)
+            if os.path.isdir(itemDir) and not item.lower().startswith("blizzard_"):
+                toc = "{}/{}.toc".format(itemDir, item)
+                if os.path.exists(toc):
+                    tmp = self.extractAddonMetadataFromTOC(toc)
+                    name=self.removeStupidStuff(tmp[0])
+                    tocversions[tmp[0]]={"folder":item,"toc":tmp[3]}
+        with open(defines.LCURSE_ADDON_TOCS_CACHE, "w") as f:
+            json.dump(tocversions, f,indent=1)
+        return tocversions
 
     def removeAddon(self):
         row = self.addonList.currentRow()
@@ -439,7 +538,7 @@ class MainWidget(Qt.QMainWindow):
         name = self.addonList.item(row, 0).text()
         uri = self.addonList.item(row, 1).text()
         version = self.addonList.item(row, 2).text()
-        allowBeta = bool(self.addonList.item(row, 3).checkState() == Qt.Qt.Checked)
+        allowBeta = bool(self.addonList.item(row, 4).checkState() == Qt.Qt.Checked)
         addons.append((row, name, uri, version, allowBeta))
 
         checkDlg = waitdlg.CheckDlg(self, addons)
@@ -452,7 +551,7 @@ class MainWidget(Qt.QMainWindow):
             name = self.addonList.item(row, 0).text()
             uri = self.addonList.item(row, 1).text()
             version = self.addonList.item(row, 2).text()
-            allowBeta = bool(self.addonList.item(row, 3).checkState() == Qt.Qt.Checked)
+            allowBeta = bool(self.addonList.item(row, 4).checkState() == Qt.Qt.Checked)
             addons.append((row, name, uri, version, allowBeta))
 
         checkDlg = waitdlg.CheckDlg(self, addons)
@@ -461,8 +560,18 @@ class MainWidget(Qt.QMainWindow):
 
     def onUpdateFinished(self, addon, result):
         if result:
+            toc=str(addon[6])
+            print("File",toc)
+            if os.path.exists(toc):
+                tmp = self.extractAddonMetadataFromTOC(toc)
+                print("TOC DATA",tmp)
             data = self.addonList.item(addon[0], 0).data(Qt.Qt.UserRole)
             self.addonList.item(addon[0], 2).setText(data[0])
+            self.addonList.item(addon[0], 3).setText(tmp[3])
+            if (tmp[3] < defines.TOC):
+                self.addonList.item(addon[0], 3).setForeground(Qt.Qt.red)
+            else:
+                self.addonList.item(addon[0], 3).setForeground(Qt.Qt.green)
             self.addonList.item(addon[0], 0).setData(Qt.Qt.UserRole, None)
             self.setRowColor(addon[0], Qt.Qt.green)
 
@@ -486,7 +595,7 @@ class MainWidget(Qt.QMainWindow):
         name = self.addonList.item(row, 0).text()
         uri = self.addonList.item(row, 1).text()
         version = self.addonList.item(row, 2).text()
-        allowBeta = bool(self.addonList.item(row, 3).checkState() == Qt.Qt.Checked)
+        allowBeta = bool(self.addonList.item(row, 4).checkState() == Qt.Qt.Checked)
         addons.append((row, name, uri, version, allowBeta, data))
 
         if addons:
@@ -504,7 +613,7 @@ class MainWidget(Qt.QMainWindow):
                 name = self.addonList.item(row, 0).text()
                 uri = self.addonList.item(row, 1).text()
                 version = self.addonList.item(row, 2).text()
-                allowBeta = bool(self.addonList.item(row, 3).checkState() == Qt.Qt.Checked)
+                allowBeta = bool(self.addonList.item(row, 4).checkState() == Qt.Qt.Checked)
                 addons.append((row, name, uri, version, allowBeta, data))
 
         if addons:

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS>
-<TS version="2.1" language="de_DE" sourcelanguage="de_DE">
+<!DOCTYPE TS><TS version="2.0" language="de_DE" sourcelanguage="de_DE">
 <context>
     <name>AddAddonDlg</name>
     <message>
@@ -145,7 +144,7 @@
         <translation>Entfernt das aktuell selektierte Addon</translation>
     </message>
     <message>
-        <location filename="../modules/application.py" line="362"/>
+        <location filename="../modules/application.py" line="391"/>
         <source>Remove selected addon</source>
         <translation>Entferne das selektierte Addon</translation>
     </message>
@@ -202,7 +201,7 @@
         <translation>Es gibt einen &quot;.lcurse&quot; Eintrag in deinem Home Verzeichnis, der weder ein Verzeichnis noch ein Link auf ein Verzeichnis ist. lCurse wird beendet!</translation>
     </message>
     <message>
-        <location filename="../modules/application.py" line="362"/>
+        <location filename="../modules/application.py" line="391"/>
         <source>Do you really want to remove the following addon?
 {}</source>
         <translation>Willst du wirklich das folgende Addon entfernen?
@@ -219,7 +218,7 @@
         <translation>Forciert das Update des aktuell selektierte Addon</translation>
     </message>
     <message>
-        <location filename="../modules/application.py" line="389"/>
+        <location filename="../modules/application.py" line="418"/>
         <source>No addons matching &quot;{}&quot; found.
 The addon might already be removed, or could be going under a different name.
 Manual deletion may be required.</source>
@@ -228,7 +227,7 @@ Kann sein, dass das Addon schon entfernt wurde oder es kann unter einem anderen 
 Eine manuelle Entfernung könnte nötig sein.</translation>
     </message>
     <message>
-        <location filename="../modules/application.py" line="411"/>
+        <location filename="../modules/application.py" line="440"/>
         <source>Remove the following addons as well?
 {}</source>
         <translation>Sollen die folgenden Addons auch entfernt werden?

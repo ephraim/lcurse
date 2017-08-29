@@ -12,17 +12,51 @@ import tempfile
 from _thread import start_new_thread
 from threading import Lock
 from subprocess import check_output, check_call
+from cryptography.hazmat.primitives.hashes import MD5
+import hashlib
 
 opener = build_opener(HTTPCookieProcessor(cookiejar.CookieJar()))
 
 # default User-Agent ('Python-urllib/2.6') will *not* work
 opener.addheaders = [('User-Agent', 'Mozilla/5.0'), ]
 
+# Debug helper: caches html page to not hammer server while testing/debugging/coding    
+class CachedResponse:
+    data = ""
+    def __init__(self,data):
+        self.data=data
+        
+    def read(self):
+        return self.data
 
+# Debug helper: caches html page to not hammer server while testing/debugging/coding    
+class CacheDecorator(object):
+    cachePrefix = '/tmp/urlcache_'
+    def __init__(self,fun):
+        self.fun=fun
+        
+    def __call__(self, url):
+        md5 = hashlib.md5()
+        md5.update(bytes(url,'utf8'))
+        hash=md5.hexdigest()
+        try:
+            return self.ReadFromCache(hash)
+        except:
+            response = self.fun(url)
+            f = open(self.cachePrefix +  hash, "w")
+            f.write(str(response.read()))
+            f.close()
+            return response            
+            
+    def ReadFromCache(self, hash): 
+        return CachedResponse(open(self.cachePrefix + hash,'r').read())
+
+# Enable CacheDecorator in order to cache html pages retrieved from curse
+#@CacheDecorator
 def OpenWithRetry(url):
     count = 0
     maxcount = 5
-
+    
     # Retry 5 times
     while count < maxcount:
         try:
@@ -143,7 +177,7 @@ class CheckWorker(Qt.QThread):
                 return (True, (originCurrent, ""))
             return (False, ("", ""))
         except Exception as e:
-            print(e)
+            print("Git Update Exception",e)
         return (False, None)
 
     def needsUpdateCurse(self):
@@ -172,7 +206,7 @@ class CheckWorker(Qt.QThread):
                     return (True, (version, downloadLink))
             return (False, ("", ""))
         except HTTPError as e:
-            print(e)
+            print("Curse Update Exception",e)
         return (False, None)
 
     def run(self):
@@ -252,31 +286,36 @@ class UpdateWorker(Qt.QThread):
                 check_call(["git", "pull"])
             return True
         except Exception as e:
-            print(e)
+            print("DoGitUpdate",e)
         return False
 
     def doUpdateCurse(self):
-        try:
-            settings = Qt.QSettings()
-            response = OpenWithRetry(self.addon[5][1])
-            filename = "{}/{}".format(tempfile.gettempdir(), self.addon[5][1].split('/')[-1])
-            dest = "{}/Interface/AddOns/".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
-            with open(filename, 'wb') as zipped:
-                zipped.write(response.read())
-            with zipfile.ZipFile(filename, "r") as z:
-                z.extractall(dest)
-            os.remove(filename)
-            return True
-        except Exception as e:
-            print(e)
-        return False
+        #try:
+        settings = Qt.QSettings()
+        response = OpenWithRetry(self.addon[5][1])
+        filename = "{}/{}".format(tempfile.gettempdir(), self.addon[5][1].split('/')[-1])
+        dest = "{}/Interface/AddOns/".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
+        with open(filename, 'wb') as zipped:
+            zipped.write(response.read())
+        with zipfile.ZipFile(filename, "r") as z:
+            r=re.compile(".*\.toc$")
+            tocs=filter(r.match,z.namelist())
+            toc="{}/Interface/AddOns/{}".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT),list(tocs)[0])
+            z.extractall(dest)
+        os.remove(filename)
+        return True,toc
+        #except Exception as e:
+        #    print("DoCurseUpdate",e)
+        #    raise e
+        #return False
 
     def run(self):
         if "curse.com" in self.addon[2]:
-            result = self.doUpdateCurse()
+            result,toc = self.doUpdateCurse()
         elif self.addon[2].endswith(".git"):
-            result = self.doUpdateGit()
-        self.updateFinished.emit(self.addon, result)
+            result,toc = self.doUpdateGit()
+        print(self.addon)
+        self.updateFinished.emit(self.addon + (toc,), result)
 
 
 class UpdateCatalogDlg(Qt.QDialog):
