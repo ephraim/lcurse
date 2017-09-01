@@ -77,7 +77,7 @@ class MainWidget(Qt.QMainWindow):
                 version=f.readline().split('|')[11]
                 f.close()
             v=version.split('.')
-            return int(v[0])*10000 + int(v[1])*100
+            return str(int(v[0])*10000 + int(v[1])*100)
         except Exception as e:
             defines.TOC=settings.value(defines.WOW_TOC_KEY,defines.TOC)
             print("Error messages",e)
@@ -194,7 +194,7 @@ class MainWidget(Qt.QMainWindow):
         screen = Qt.QDesktopWidget().screenGeometry()
         size = self.geometry()
         self.move((screen.width() - size.width()) / 2, (screen.height() - size.height()) / 5)
-        self.setWindowTitle('WoW!Curse ' + '(TOC: ' + str(defines.TOC) +')')
+        self.setWindowTitle('WoW!Curse ' + '(TOC: ' + defines.TOC +')')
 
         box.addWidget(self.addonList)
         self.statusBar().showMessage(self.tr("Ready"))
