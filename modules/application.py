@@ -58,6 +58,7 @@ class MainWidget(Qt.QMainWindow):
         super(MainWidget, self).__init__()
         self.ensureLCurseFolder()
         self.addonsFile = os.path.expanduser(defines.LCURSE_ADDONS)
+        defines.TOC=self.getWowToc()
         self.addWidgets()
 
         self.addons = []
@@ -65,7 +66,22 @@ class MainWidget(Qt.QMainWindow):
 
         self.availableAddons = []
         self.loadAddonCatalog()
-
+            
+    def getWowToc(self):
+        settings = Qt.QSettings()
+        try:
+            buildinfo="{}/.build.info".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
+            print(buildinfo)
+            with open(buildinfo, encoding="utf8", errors='replace') as f:
+                line = f.readline()
+                version=f.readline().split('|')[11]
+                f.close()
+            v=version.split('.')
+            return int(v[0])*10000 + int(v[1])*100
+        except Exception as e:
+            defines.TOC=settings.value(defines.WOW_TOC_KEY,defines.TOC)
+            print("Error messages",e)
+                
     def addWidgets(self):
         self.mainWidget = Qt.QWidget(self)
         box = Qt.QVBoxLayout(self.mainWidget)
@@ -178,7 +194,7 @@ class MainWidget(Qt.QMainWindow):
         screen = Qt.QDesktopWidget().screenGeometry()
         size = self.geometry()
         self.move((screen.width() - size.width()) / 2, (screen.height() - size.height()) / 5)
-        self.setWindowTitle('WoW!Curse')
+        self.setWindowTitle('WoW!Curse ' + '(TOC: ' + str(defines.TOC) +')')
 
         box.addWidget(self.addonList)
         self.statusBar().showMessage(self.tr("Ready"))
@@ -216,53 +232,53 @@ class MainWidget(Qt.QMainWindow):
 
     def extractAddonMetadataFromTOC(self, toc):
         (name, uri, version, curseId, tocversion) = ("", "", "", "", "")
-        title_re = re.compile(r"^## *Title: *(.*)$")
-        title2_re = re.compile(r"^## *Title.....: *(.*)$")
-        curse_title_re = re.compile(r"^## *X-Curse-Project-Name: *(.*)$")
-        curse_version_re = re.compile(r"^## *X-Curse-Packaged-Version: *(.*)$")
+        title_re = re.compile(r"^## *Title: *(.*)")
+        title2_re = re.compile(r"^## *Title.....: *(.*)")
+        curse_title_re = re.compile(r"^## *X-Curse-Project-Name: *(.*)")
+        curse_version_re = re.compile(r"^## *X-Curse-Packaged-Version: *(.*)")
         version_re = re.compile(r"^## *Version: *(.*)$")
-        curse_re = re.compile(r"^## °X-Curse-Project-ID: *(.*)$")
-        tocversion_re = re.compile(r"^## *Interface: *(.*)$")
+        curse_re = re.compile(r"^## °X-Curse-Project-ID: *(.*)")
+        tocversion_re = re.compile(r"^## *Interface: *(\d*)")
         with open(toc, encoding="utf8", errors='replace') as f:
             line = f.readline()
             while line != "":
                 line = line.strip()
                 m = curse_title_re.match(line)
                 if m:
-                    name = m.group(1)
+                    name = m.group(1).strip()
                     line = f.readline()
                     continue
                 if name == "":
                     m = title_re.match(line)
                     if m:
-                        name = m.group(1)
+                        name = m.group(1).strip()
                         line = f.readline()
                         continue
                 if name == "":
                     m = title2_re.match(line)
                     if m:
-                        name = m.group(1)
+                        name = m.group(1).strip()
                         line = f.readline()
                         continue
                 m = curse_version_re.match(line)
                 if m:
-                    version = m.group(1)
+                    version = m.group(1).strip()
                     line = f.readline()
                     continue
                 if version == "":
                     m = version_re.match(line)
                     if m:
-                        version = m.group(1)
+                        version = m.group(1).strip()
                         line = f.readline()
                         continue
                 m = curse_re.match(line)
                 if m:
-                    curseId = m.group(1)
+                    curseId = m.group(1).strip()
                     line = f.readline()
                     continue
                 m = tocversion_re.match(line)
                 if m:
-                    tocversion = m.group(1)
+                    tocversion = m.group(1).strip()
                     line = f.readline()
                     continue
                 line = f.readline()
@@ -561,17 +577,15 @@ class MainWidget(Qt.QMainWindow):
     def onUpdateFinished(self, addon, result):
         if result:
             toc=str(addon[6])
-            print("File",toc)
             if os.path.exists(toc):
                 tmp = self.extractAddonMetadataFromTOC(toc)
-                print("TOC DATA",tmp)
             data = self.addonList.item(addon[0], 0).data(Qt.Qt.UserRole)
             self.addonList.item(addon[0], 2).setText(data[0])
             self.addonList.item(addon[0], 3).setText(tmp[3])
             if (tmp[3] < defines.TOC):
                 self.addonList.item(addon[0], 3).setForeground(Qt.Qt.red)
             else:
-                self.addonList.item(addon[0], 3).setForeground(Qt.Qt.green)
+                self.addonList.item(addon[0], 3).setForeground(Qt.Qt.blue)
             self.addonList.item(addon[0], 0).setData(Qt.Qt.UserRole, None)
             self.setRowColor(addon[0], Qt.Qt.green)
 

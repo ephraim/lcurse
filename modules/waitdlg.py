@@ -294,13 +294,19 @@ class UpdateWorker(Qt.QThread):
         settings = Qt.QSettings()
         response = OpenWithRetry(self.addon[5][1])
         filename = "{}/{}".format(tempfile.gettempdir(), self.addon[5][1].split('/')[-1])
+        print("Folders",defines.WOW_FOLDER_KEY,defines.WOW_FOLDER_DEFAULT)
         dest = "{}/Interface/AddOns/".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
         with open(filename, 'wb') as zipped:
             zipped.write(response.read())
         with zipfile.ZipFile(filename, "r") as z:
             r=re.compile(".*\.toc$")
+            r2=re.compile("[\\/]")
             tocs=filter(r.match,z.namelist())
-            toc="{}/Interface/AddOns/{}".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT),list(tocs)[0])
+            for nome in list(tocs):
+                t=r2.split(nome)
+                if len(t) == 2:
+                    break
+            toc="{}/Interface/AddOns/{}".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT),nome)
             z.extractall(dest)
         os.remove(filename)
         return True,toc
