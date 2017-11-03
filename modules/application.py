@@ -82,7 +82,7 @@ class MainWidget(Qt.QMainWindow):
             v=version.split('.')
             return str(int(v[0])*10000 + int(v[1])*100)
         except Exception as e:
-            defines.TOC=settings.value(defines.WOW_TOC_KEY,defines.TOC)
+            return settings.value(defines.WOW_TOC_KEY,defines.TOC)
             print("Error messages",e)
                 
     def addWidgets(self):
