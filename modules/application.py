@@ -597,6 +597,7 @@ class MainWidget(Qt.QMainWindow):
         print("enforcing update of {:s}".format(self.addonList.item(row, 0).text()))
         self.addonList.item(row, 2).setText("")
         self.updateAddon()
+        print("updated")
 
     def updateAddon(self):
         row = self.addonList.currentRow()

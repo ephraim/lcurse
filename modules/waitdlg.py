@@ -181,31 +181,35 @@ class CheckWorker(Qt.QThread):
 
     def needsUpdateCurse(self):
         try:
+            print("Checking update for " + self.addon[1])
             pattern = re.compile("-nolib$")
-            response = OpenWithRetry(self.addon[2])
+            url = self.addon[2].replace('www.curse','www.curseforge')
+            url = url.replace('mods.curse','www.curseforge')
+            url = url.replace('/addons/wow/','/wow/addons/') + '/files'
+            response = OpenWithRetry(url)
             html = response.read()
             soup = BeautifulSoup(html, "lxml")
-            possibleValues = "1"
-            if self.addon[4]:
-                possibleValues = re.compile("^[12]$")
-            lis = soup.findAll("td", attrs={"data-sort-value": possibleValues})
+            beta=self.addon[4]
+            lis = soup.findAll("tr","project-file-list__item")
             if lis:
                 versionIdx = 0
-                version = lis[versionIdx].parent.contents[0].contents[0].string
-                if len(lis) > 1 and pattern.search(version) and pattern.sub("", version) == \
-                        lis[1].parent.contents[0].contents[0].string:
-                    versionIdx = 1
-                    version = lis[versionIdx].parent.contents[0].contents[0].string
+                isOk=False
+                while True:
+                    isOk= beta or lis[versionIdx].td.span.attrs['title']=='Release'
+                    if isOk:
+                        break
+                    versionIdx=versionIdx+1
+                row=lis[versionIdx]
+                version=row.find("span","table__content file__name").string
                 if str(self.addon[3]) != version:
-                    response = OpenWithRetry(
-                        "http://www.curse.com" + lis[versionIdx].parent.contents[0].contents[0]['href'])
-                    html = response.read()
-                    soup = BeautifulSoup(html, "lxml")
-                    downloadLink = soup.select(".download-link")[0].get('data-href')
+                    downloadLink="https://www.curseforge.com"+ row.find("a").attrs['href'] + '/file'
                     return (True, (version, downloadLink))
             return (False, ("", ""))
+            
         except HTTPError as e:
             print("Curse Update Exception",e)
+        except e:
+            print(e)
         return (False, None)
 
     def run(self):
@@ -291,10 +295,12 @@ class UpdateWorker(Qt.QThread):
     def doUpdateCurse(self):
         #try:
         settings = Qt.QSettings()
+        print(self.addon[5][1])
         response = OpenWithRetry(self.addon[5][1])
-        filename = "{}/{}".format(tempfile.gettempdir(), self.addon[5][1].split('/')[-1])
+        filename = "{}/{}".format(tempfile.gettempdir(), self.addon[5][1].split('/')[-2])
         print("Folders",defines.WOW_FOLDER_KEY,defines.WOW_FOLDER_DEFAULT)
         dest = "{}/Interface/AddOns/".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
+        print("Zip file written to " +filename)
         with open(filename, 'wb') as zipped:
             zipped.write(response.read())
         with zipfile.ZipFile(filename, "r") as z:
