@@ -292,9 +292,9 @@ class MainWidget(Qt.QMainWindow):
         name = self.removeStupidStuff(name)
         curseId = self.removeStupidStuff(curseId)
         
-        uri = "http://mods.curse.com/addons/wow/{}".format(name.lower().replace(" ", "-"))
+        uri = "http://www.curseforge.com/wow/addons/{}".format(name.lower().replace(" ", "-"))
         if curseId:
-            uri = "http://mods.curse.com/addons/wow/{}".format(curseId)
+            uri = "http://www.curseforge.com/wow/addons/{}".format(curseId)
         
             #return ["", "", "", ""]
 
@@ -354,8 +354,12 @@ class MainWidget(Qt.QMainWindow):
         if not addons:
             return
         self.addonList.setRowCount(len(addons))
-        tocs=self.updateDatabaseFormat(dbversion-10)
+        tocs=self.updateDatabaseFormat(dbversion)
         for (row, addon) in enumerate(addons):
+            url = urllib.parse.urlparse(addon["uri"])
+            if url.netloc == "mods.curse.com" or url.netloc == "www.curse.com" or "wowace" in url.netloc:
+                path=url.path.replace("/addons",'').replace('/wow','')
+                addon["uri"]=url.scheme + '://www.curseforge.com/wow/addons' +path
             self.addonList.setItem(row, 0, Qt.QTableWidgetItem(addon["name"]))
             self.addonList.setItem(row, 1, Qt.QTableWidgetItem(addon["uri"]))
             self.addonList.setItem(row, 2, Qt.QTableWidgetItem(addon["version"]))
@@ -421,16 +425,16 @@ class MainWidget(Qt.QMainWindow):
         
         if url == None:
             url = str(nameOrUrl)
-            if "curse.com" in url:
+            if "curseforge.com" in url:
                 try:
                     print("retrieving addon informations")
                     response = opener.open(urlparse(urlquote(url, ':/')).geturl())
                     soup = BeautifulSoup(response.read(), "lxml")
                     try:
-                        captions = soup.select("#project-overview header h2")
+                        captions = soup.select("h2.name")
                         name = captions[0].string
                     except:
-                        print("Curse.com layout has changed.")
+                        print("www.curseforge.com layout has changed.")
                         pass
                 except HTTPError as e:
                     print(e)
@@ -594,10 +598,8 @@ class MainWidget(Qt.QMainWindow):
 
     def forceUpdateAddon(self):
         row = self.addonList.currentRow()
-        print("enforcing update of {:s}".format(self.addonList.item(row, 0).text()))
         self.addonList.item(row, 2).setText("")
         self.updateAddon()
-        print("updated")
 
     def updateAddon(self):
         row = self.addonList.currentRow()

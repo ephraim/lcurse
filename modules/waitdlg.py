@@ -13,6 +13,7 @@ from _thread import start_new_thread
 from threading import Lock
 from subprocess import check_output, check_call
 import hashlib
+import json
 
 opener = build_opener(HTTPCookieProcessor(cookiejar.CookieJar()))
 
@@ -51,6 +52,7 @@ class CacheDecorator(object):
         return CachedResponse(open(self.cachePrefix + hash,'r').read())
 
 # Enable CacheDecorator in order to cache html pages retrieved from curse
+# WARNING only for html parsing, disable when you are testing downloading zips
 #@CacheDecorator
 def OpenWithRetry(url):
     count = 0
@@ -181,11 +183,8 @@ class CheckWorker(Qt.QThread):
 
     def needsUpdateCurse(self):
         try:
-            print("Checking update for " + self.addon[1])
             pattern = re.compile("-nolib$")
-            url = self.addon[2].replace('www.curse','www.curseforge')
-            url = url.replace('mods.curse','www.curseforge')
-            url = url.replace('/addons/wow/','/wow/addons/') + '/files'
+            url = self.addon[2] + '/files'
             response = OpenWithRetry(url)
             html = response.read()
             soup = BeautifulSoup(html, "lxml")
@@ -208,13 +207,13 @@ class CheckWorker(Qt.QThread):
             
         except HTTPError as e:
             print("Curse Update Exception",e)
-        except e:
+        except Exception as e:
             print(e)
         return (False, None)
 
     def run(self):
         result = None;
-        if "curse.com" in self.addon[2]:
+        if "curseforge.com" in self.addon[2]:
             result = self.needsUpdateCurse()
         elif self.addon[2].endswith(".git"):
             result = self.needsUpdateGit()
@@ -280,7 +279,6 @@ class UpdateWorker(Qt.QThread):
             settings = Qt.QSettings()
             dest = "{}/Interface/AddOns".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
             destAddon = "{}/{}".format(dest, os.path.basename(str(self.addon[2]))[:-4])
-            print(destAddon)
             if not os.path.exists(destAddon):
                 os.chdir(dest)
                 check_call(["git", "clone", self.addon[2]])
@@ -294,13 +292,10 @@ class UpdateWorker(Qt.QThread):
 
     def doUpdateCurse(self):
         #try:
-        settings = Qt.QSettings()
         print(self.addon[5][1])
         response = OpenWithRetry(self.addon[5][1])
         filename = "{}/{}".format(tempfile.gettempdir(), self.addon[5][1].split('/')[-2])
-        print("Folders",defines.WOW_FOLDER_KEY,defines.WOW_FOLDER_DEFAULT)
         dest = "{}/Interface/AddOns/".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
-        print("Zip file written to " +filename)
         with open(filename, 'wb') as zipped:
             zipped.write(response.read())
         with zipfile.ZipFile(filename, "r") as z:
@@ -321,11 +316,13 @@ class UpdateWorker(Qt.QThread):
         #return False
 
     def run(self):
-        if "curse.com" in self.addon[2]:
+        if "curseforge.com" in self.addon[2]:
             result,toc = self.doUpdateCurse()
         elif self.addon[2].endswith(".git"):
             result,toc = self.doUpdateGit()
-        print(self.addon)
+        else:
+            result=False
+            toc="n/a"
         self.updateFinished.emit(self.addon + (toc,), result)
 
 
@@ -380,7 +377,7 @@ class UpdateCatalogWorker(Qt.QThread):
         self.lastpage = 1
 
     def retrievePartialListOfAddons(self, page):
-        response = OpenWithRetry("http://www.curse.com/addons/wow?page={}".format(page))
+        response = OpenWithRetry("http://www.curseforge.com/wow/addons?page={}".format(page))
         soup = BeautifulSoup(response.read(), "lxml")
         # Curse returns a soft-500
         if soup.find_all("h2", string="Error"):
@@ -392,10 +389,17 @@ class UpdateCatalogWorker(Qt.QThread):
             if pager:
                 lastpage = int(pager[len(pager) - 2].contents[0].contents[0])
 
-        links = soup.select("li .title h4 a")  # li .title h4 a")
+        projects = soup.select("li.project-list-item")  # li .title h4 a")
         self.addonsMutex.lock()
-        for link in links:
-            self.addons.append([link.string, "http://www.curse.com{}".format(link.get("href"))])
+        for project in projects:
+            links=project.select("a.button--download")
+            texts=project.select("a h2")
+            for text in texts:
+                nome=text.string.replace('\\r','').replace('\\n','').strip()
+                break
+            for link in links:
+                href=link.get("href").replace("/download",'')
+            self.addons.append([nome, "http://www.curseforge.com{}".format(href)])
         self.progress.emit(len(self.addons))
         self.addonsMutex.unlock()
 
