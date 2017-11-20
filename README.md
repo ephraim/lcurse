@@ -26,3 +26,11 @@ Simply:
 ```bash
 pipenv run ./lcurse
 ```
+
+### Unattended mode
+
+You may also run `lcurse` in "unattended mode" once you have set it up. This
+will update all your addons and then exit. Use
+```bash
+pipenv run ./lcurse --auto-update
+```
