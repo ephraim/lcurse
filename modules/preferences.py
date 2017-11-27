@@ -80,5 +80,5 @@ class PreferencesDlg(Qt.QDialog):
     def accept(self):
         self.setWowFolder(self.wowInstallFolder.text())
         self.setMaxThreads(self.maxthreads.value())
-        self.setTocVersion(self.currenttoc.value())
+        self.setTocVersion(self.currenttoc.text())
         super(PreferencesDlg, self).accept()

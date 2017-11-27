@@ -47,6 +47,7 @@ if __name__ == "__main__":
     try:
         mainWidget.show()
         ret = app.exec_()
+        mainWidget.saveAddons()
     except Exception as e:
         print(str(e))
 

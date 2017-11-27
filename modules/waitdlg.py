@@ -13,6 +13,7 @@ from _thread import start_new_thread
 from threading import Lock
 from subprocess import check_output, check_call
 import hashlib
+import json
 
 opener = build_opener(HTTPCookieProcessor(cookiejar.CookieJar()))
 
@@ -51,6 +52,7 @@ class CacheDecorator(object):
         return CachedResponse(open(self.cachePrefix + hash,'r').read())
 
 # Enable CacheDecorator in order to cache html pages retrieved from curse
+# WARNING only for html parsing, disable when you are testing downloading zips
 #@CacheDecorator
 def OpenWithRetry(url):
     count = 0
@@ -182,35 +184,36 @@ class CheckWorker(Qt.QThread):
     def needsUpdateCurse(self):
         try:
             pattern = re.compile("-nolib$")
-            response = OpenWithRetry(self.addon[2])
+            url = self.addon[2] + '/files'
+            response = OpenWithRetry(url)
             html = response.read()
             soup = BeautifulSoup(html, "lxml")
-            possibleValues = "1"
-            if self.addon[4]:
-                possibleValues = re.compile("^[12]$")
-            lis = soup.findAll("td", attrs={"data-sort-value": possibleValues})
+            beta=self.addon[4]
+            lis = soup.findAll("tr","project-file-list__item")
             if lis:
                 versionIdx = 0
-                version = lis[versionIdx].parent.contents[0].contents[0].string
-                if len(lis) > 1 and pattern.search(version) and pattern.sub("", version) == \
-                        lis[1].parent.contents[0].contents[0].string:
-                    versionIdx = 1
-                    version = lis[versionIdx].parent.contents[0].contents[0].string
+                isOk=False
+                while True:
+                    isOk= beta or lis[versionIdx].td.span.attrs['title']=='Release'
+                    if isOk:
+                        break
+                    versionIdx=versionIdx+1
+                row=lis[versionIdx]
+                version=row.find("span","table__content file__name").string
                 if str(self.addon[3]) != version:
-                    response = OpenWithRetry(
-                        "http://www.curse.com" + lis[versionIdx].parent.contents[0].contents[0]['href'])
-                    html = response.read()
-                    soup = BeautifulSoup(html, "lxml")
-                    downloadLink = soup.select(".download-link")[0].get('data-href')
+                    downloadLink="https://www.curseforge.com"+ row.find("a").attrs['href'] + '/file'
                     return (True, (version, downloadLink))
             return (False, ("", ""))
+            
         except HTTPError as e:
             print("Curse Update Exception",e)
+        except Exception as e:
+            print(e)
         return (False, None)
 
     def run(self):
         result = None;
-        if "curse.com" in self.addon[2]:
+        if "curseforge.com" in self.addon[2]:
             result = self.needsUpdateCurse()
         elif self.addon[2].endswith(".git"):
             result = self.needsUpdateGit()
@@ -276,7 +279,6 @@ class UpdateWorker(Qt.QThread):
             settings = Qt.QSettings()
             dest = "{}/Interface/AddOns".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
             destAddon = "{}/{}".format(dest, os.path.basename(str(self.addon[2]))[:-4])
-            print(destAddon)
             if not os.path.exists(destAddon):
                 os.chdir(dest)
                 check_call(["git", "clone", self.addon[2]])
@@ -289,37 +291,38 @@ class UpdateWorker(Qt.QThread):
         return False
 
     def doUpdateCurse(self):
-        #try:
-        settings = Qt.QSettings()
-        response = OpenWithRetry(self.addon[5][1])
-        filename = "{}/{}".format(tempfile.gettempdir(), self.addon[5][1].split('/')[-1])
-        print("Folders",defines.WOW_FOLDER_KEY,defines.WOW_FOLDER_DEFAULT)
-        dest = "{}/Interface/AddOns/".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
-        with open(filename, 'wb') as zipped:
-            zipped.write(response.read())
-        with zipfile.ZipFile(filename, "r") as z:
-            r=re.compile(".*\.toc$")
-            r2=re.compile("[\\/]")
-            tocs=filter(r.match,z.namelist())
-            for nome in list(tocs):
-                t=r2.split(nome)
-                if len(t) == 2:
-                    break
-            toc="{}/Interface/AddOns/{}".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT),nome)
-            z.extractall(dest)
-        os.remove(filename)
-        return True,toc
-        #except Exception as e:
-        #    print("DoCurseUpdate",e)
-        #    raise e
-        #return False
+        try:
+            settings = Qt.QSettings()
+            response = OpenWithRetry(self.addon[5][1])
+            filename = "{}/{}".format(tempfile.gettempdir(), self.addon[5][1].split('/')[-2])
+            dest = "{}/Interface/AddOns/".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
+            with open(filename, 'wb') as zipped:
+                zipped.write(response.read())
+            with zipfile.ZipFile(filename, "r") as z:
+                r=re.compile(".*\.toc$")
+                r2=re.compile("[\\/]")
+                tocs=filter(r.match,z.namelist())
+                for nome in list(tocs):
+                    t=r2.split(nome)
+                    if len(t) == 2:
+                        break
+                toc="{}/Interface/AddOns/{}".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT),nome)
+                z.extractall(dest)
+            os.remove(filename)
+            return True,toc
+        except Exception as e:
+            print("DoCurseUpdate",e)
+            raise e
+        return False
 
     def run(self):
-        if "curse.com" in self.addon[2]:
+        if "curseforge.com" in self.addon[2]:
             result,toc = self.doUpdateCurse()
         elif self.addon[2].endswith(".git"):
             result,toc = self.doUpdateGit()
-        print(self.addon)
+        else:
+            result=False
+            toc="n/a"
         self.updateFinished.emit(self.addon + (toc,), result)
 
 
@@ -374,7 +377,7 @@ class UpdateCatalogWorker(Qt.QThread):
         self.lastpage = 1
 
     def retrievePartialListOfAddons(self, page):
-        response = OpenWithRetry("http://www.curse.com/addons/wow?page={}".format(page))
+        response = OpenWithRetry("http://www.curseforge.com/wow/addons?page={}".format(page))
         soup = BeautifulSoup(response.read(), "lxml")
         # Curse returns a soft-500
         if soup.find_all("h2", string="Error"):
@@ -386,10 +389,17 @@ class UpdateCatalogWorker(Qt.QThread):
             if pager:
                 lastpage = int(pager[len(pager) - 2].contents[0].contents[0])
 
-        links = soup.select("li .title h4 a")  # li .title h4 a")
+        projects = soup.select("li.project-list-item")  # li .title h4 a")
         self.addonsMutex.lock()
-        for link in links:
-            self.addons.append([link.string, "http://www.curse.com{}".format(link.get("href"))])
+        for project in projects:
+            links=project.select("a.button--download")
+            texts=project.select("a h2")
+            for text in texts:
+                nome=text.string.replace('\\r','').replace('\\n','').strip()
+                break
+            for link in links:
+                href=link.get("href").replace("/download",'')
+            self.addons.append([nome, "http://www.curseforge.com{}".format(href)])
         self.progress.emit(len(self.addons))
         self.addonsMutex.unlock()
 
