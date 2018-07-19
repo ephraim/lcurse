@@ -294,22 +294,22 @@ class UpdateWorker(Qt.QThread):
         try:
             settings = Qt.QSettings()
             response = OpenWithRetry(self.addon[5][1])
-            filename = "{}/{}".format(tempfile.gettempdir(), self.addon[5][1].split('/')[-2])
             dest = "{}/Interface/AddOns/".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
-            with open(filename, 'wb') as zipped:
+
+            with tempfile.NamedTemporaryFile('w+b') as zipped:
                 zipped.write(response.read())
-            with zipfile.ZipFile(filename, "r") as z:
-                r=re.compile(".*\.toc$")
-                r2=re.compile("[\\/]")
-                tocs=filter(r.match,z.namelist())
-                for nome in list(tocs):
-                    t=r2.split(nome)
-                    if len(t) == 2:
-                        break
-                toc="{}/Interface/AddOns/{}".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT),nome)
-                z.extractall(dest)
-            os.remove(filename)
-            return True,toc
+                zipped.seek(0)
+                with zipfile.ZipFile(zipped, 'r') as z:
+                    r=re.compile(".*\.toc$")
+                    r2=re.compile("[\\/]")
+                    tocs=filter(r.match,z.namelist())
+                    for nome in list(tocs):
+                        t=r2.split(nome)
+                        if len(t) == 2:
+                            break
+                    toc="{}/Interface/AddOns/{}".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT),nome)
+                    z.extractall(dest)
+            return True, toc
         except Exception as e:
             print("DoCurseUpdate",e)
             raise e
