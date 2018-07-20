@@ -1,0 +1,11 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+
+[requires]
+python_version = '3.6'
+
+[packages]
+beautifulsoup4 = '>4.5.3'
+lxml = '>3.6'
+PyQt5 = '>5.7'

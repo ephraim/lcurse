@@ -9,9 +9,20 @@ As git repos aren't structured the same, you will most probably need to create a
 But at least the update is then done via the usuall lcurse way.
 
 ### Requirements
-* python 3
+* python 3.6
+* pipenv
 * PyQt5
 * bs4
 * lxml
 
-All requirements can be installed with `pip install -r requirements.txt`
+All requirements can be installed with:
+```bash
+pipenv install
+```
+
+## Running
+
+Simply:
+```bash
+pipenv run ./lcurse
+```
