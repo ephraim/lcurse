@@ -46,7 +46,12 @@ if __name__ == "__main__":
     mainWidget = application.MainWidget()
     try:
         mainWidget.show()
-        ret = app.exec_()
+        if len(sys.argv) > 1 and sys.argv[1] == "--auto-update":
+            mainWidget.hide()
+            mainWidget.updateAddons()
+            ret = 0
+        else:
+            ret = app.exec_()
         mainWidget.saveAddons()
     except Exception as e:
         print(str(e))
