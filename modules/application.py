@@ -302,7 +302,7 @@ class MainWidget(Qt.QMainWindow):
 
     def importAddons(self):
         settings = Qt.QSettings()
-        parent = "{}/Interface/AddOns".format(str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)))
+        parent = "{}/_retail_/Interface/AddOns".format(str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)))
         contents = os.listdir(parent)
         for item in contents:
             itemDir = "{}/{}".format(parent, item)
@@ -458,7 +458,7 @@ class MainWidget(Qt.QMainWindow):
             return {}
         print("Database update!")
         settings = Qt.QSettings()
-        parent = "{}/Interface/AddOns".format(str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)))
+        parent = "{}/_retail_/Interface/AddOns".format(str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)))
         contents = os.listdir(parent)
         contents.sort()
         tocversions={}
@@ -484,7 +484,7 @@ class MainWidget(Qt.QMainWindow):
         if answer != Qt.QMessageBox.Yes:
             return
         settings = Qt.QSettings()
-        parent = "{}/Interface/AddOns".format(str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)))
+        parent = "{}/_retail_/Interface/AddOns".format(str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)))
         contents = os.listdir(parent)
         addonName =  str(self.addonList.item(row, 0).text())
         deleted = False
