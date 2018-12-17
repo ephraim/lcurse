@@ -398,7 +398,7 @@ class UpdateCatalogWorker(Qt.QThread):
                 nome=text.string.replace('\\r','').replace('\\n','').strip()
                 break
             for link in links:
-                href=link.get("href").replace("/download",'')
+                href=link.get("href", link.get("data-normal-href")).replace("/download",'')
             self.addons.append([nome, "http://www.curseforge.com{}".format(href)])
         self.progress.emit(len(self.addons))
         self.addonsMutex.unlock()
