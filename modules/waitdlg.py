@@ -169,7 +169,7 @@ class CheckWorker(Qt.QThread):
     def needsUpdateGit(self):
         try:
             settings = Qt.QSettings()
-            dest = "{}/Interface/AddOns/{}".format(
+            dest = "{}/_retail_/Interface/AddOns/{}".format(
                 settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT),
                 os.path.basename(str(self.addon[2])[:-4]))
             originCurrent = str(check_output(["git", "ls-remote", str(self.addon[2]), "HEAD"]), "utf-8").split()[0]
@@ -277,7 +277,7 @@ class UpdateWorker(Qt.QThread):
     def doUpdateGit(self):
         try:
             settings = Qt.QSettings()
-            dest = "{}/Interface/AddOns".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
+            dest = "{}/_retail_/Interface/AddOns".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
             destAddon = "{}/{}".format(dest, os.path.basename(str(self.addon[2]))[:-4])
             if not os.path.exists(destAddon):
                 os.chdir(dest)
@@ -294,7 +294,7 @@ class UpdateWorker(Qt.QThread):
         try:
             settings = Qt.QSettings()
             response = OpenWithRetry(self.addon[5][1])
-            dest = "{}/Interface/AddOns/".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
+            dest = "{}/_retail_/Interface/AddOns/".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
 
             with tempfile.NamedTemporaryFile('w+b') as zipped:
                 zipped.write(response.read())
@@ -307,7 +307,7 @@ class UpdateWorker(Qt.QThread):
                         t=r2.split(nome)
                         if len(t) == 2:
                             break
-                    toc="{}/Interface/AddOns/{}".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT),nome)
+                    toc="{}/_retail_/Interface/AddOns/{}".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT),nome)
                     z.extractall(dest)
             return True, toc
         except Exception as e:
