@@ -194,7 +194,7 @@ class CheckWorker(Qt.QThread):
                 versionIdx = 1
                 isOk=False
                 while True:
-                    isOk= beta or lis[versionIdx].td.span.string=='R'
+                    isOk= beta or lis[versionIdx].td.div.span.string=='R'
                     if isOk:
                         break
                     versionIdx=versionIdx+1
@@ -205,6 +205,7 @@ class CheckWorker(Qt.QThread):
                     addonid = elem.attrs['href'].split('/')[-1]
                     addonname = elem.attrs['href'].split('/')[-3]
                     downloadLink = "https://www.curseforge.com/wow/addons/" + addonname + "/download/" + addonid + "/file"
+                    return (True, (version, downloadLink))
             return (False, ("", ""))
             
         except HTTPError as e:
