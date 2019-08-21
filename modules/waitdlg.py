@@ -189,19 +189,22 @@ class CheckWorker(Qt.QThread):
             html = response.read()
             soup = BeautifulSoup(html, "lxml")
             beta=self.addon[4]
-            lis = soup.findAll("tr","project-file-list__item")
+            lis = soup.findAll("tr")
             if lis:
-                versionIdx = 0
+                versionIdx = 1
                 isOk=False
                 while True:
-                    isOk= beta or lis[versionIdx].td.span.attrs['title']=='Release'
+                    isOk= beta or lis[versionIdx].td.div.span.string=='R'
                     if isOk:
                         break
                     versionIdx=versionIdx+1
                 row=lis[versionIdx]
-                version=row.find("span","table__content file__name").string
+                elem = row.find("a",attrs={"data-action":"file-link"})
+                version=elem.string
                 if str(self.addon[3]) != version:
-                    downloadLink="https://www.curseforge.com"+ row.find("a").attrs['href'] + '/file'
+                    addonid = elem.attrs['href'].split('/')[-1]
+                    addonname = elem.attrs['href'].split('/')[-3]
+                    downloadLink = "https://www.curseforge.com/wow/addons/" + addonname + "/download/" + addonid + "/file"
                     return (True, (version, downloadLink))
             return (False, ("", ""))
             
