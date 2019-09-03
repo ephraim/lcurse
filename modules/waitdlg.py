@@ -194,9 +194,11 @@ class CheckWorker(Qt.QThread):
                 versionIdx = 1
                 isOk=False
                 while True:
-                    isOk= beta or lis[versionIdx].td.div.span.string=='R'
-                    if isOk:
-                        break
+                    version = tuple(lis[versionIdx].findAll('td')[4].stripped_strings)
+                    if int(version[0][0]) > 1 or len(version) > 1 and version[1][0] == '+':
+                        isOk = beta or lis[versionIdx].td.div.span.string=='R'
+                        if isOk:
+                            break
                     versionIdx=versionIdx+1
                 row=lis[versionIdx]
                 elem = row.find("a",attrs={"data-action":"file-link"})
