@@ -380,7 +380,7 @@ class UpdateCatalogWorker(Qt.QThread):
         self.lastpage = 1
 
     def retrievePartialListOfAddons(self, page):
-        response = OpenWithRetry("http://www.curseforge.com/wow/addons?page={}".format(page))
+        response = OpenWithRetry("https://www.curseforge.com/wow/addons?page={}".format(page))
         soup = BeautifulSoup(response.read(), "lxml")
         # Curse returns a soft-500
         if soup.find_all("h2", string="Error"):
@@ -402,7 +402,7 @@ class UpdateCatalogWorker(Qt.QThread):
                 break
             for link in links:
                 href=link.get("href", link.get("data-normal-href")).replace("/download",'')
-            self.addons.append([nome, "http://www.curseforge.com{}".format(href)])
+            self.addons.append([nome, "https://www.curseforge.com{}".format(href)])
         self.progress.emit(len(self.addons))
         self.addonsMutex.unlock()
 

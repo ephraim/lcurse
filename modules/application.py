@@ -294,9 +294,9 @@ class MainWidget(Qt.QMainWindow):
         name = self.removeStupidStuff(name)
         curseId = self.removeStupidStuff(curseId)
         
-        uri = "http://www.curseforge.com/wow/addons/{}".format(name.lower().replace(" ", "-"))
+        uri = "https://www.curseforge.com/wow/addons/{}".format(name.lower().replace(" ", "-"))
         if curseId:
-            uri = "http://www.curseforge.com/wow/addons/{}".format(curseId)
+            uri = "https://www.curseforge.com/wow/addons/{}".format(curseId)
         
             #return ["", "", "", ""]
 
