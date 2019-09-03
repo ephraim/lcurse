@@ -153,6 +153,7 @@ class MainWidget(Qt.QMainWindow):
         actionAdd.triggered.connect(self.addAddon)
 
         actionRemove = Qt.QAction(self.tr("Remove addon"), self)
+        actionRemove.setShortcut("Shift+Del")
         actionRemove.setStatusTip(self.tr("Remove currently selected addon"))
         actionRemove.triggered.connect(self.removeAddon)
 
