@@ -319,9 +319,13 @@ class MainWidget(Qt.QMainWindow):
                         continue
                     (name, uri, version, tocVersion) = tmp
                     row = self.addonList.rowCount()
-                    if not self.addonList.findItems(name, Qt.Qt.MatchExactly):
+                    addons = self.addonList.findItems(name, Qt.Qt.MatchExactly)
+                    if not addons:
                         self.addonList.setRowCount(row + 1)
                         self.insertAddon(row, name, uri, version, tocVersion, False)
+                    elif tocVersion:
+                        for addon in addons:
+                            self.addonList.item(addon.row(), 3).setText(tocVersion)
         self.addonList.resizeColumnsToContents()
         self.saveAddons()
 
