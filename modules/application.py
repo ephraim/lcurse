@@ -200,6 +200,7 @@ class MainWidget(Qt.QMainWindow):
 
         self.addonList.setColumnCount(5)
         self.addonList.setHorizontalHeaderLabels(["Name", "Url", "Version", "Toc", "Allow Beta"])
+        self.addonList.setSortingEnabled(True)
 
         self.resize(1070, 815)
         screen = Qt.QDesktopWidget().screenGeometry()
@@ -408,6 +409,8 @@ class MainWidget(Qt.QMainWindow):
     def saveAddons(self):
         print("Saving addons to ",self.addonsFile)
         addons = []
+        sortSection = self.addonList.horizontalHeader().sortIndicatorSection()
+        sortOrder = self.addonList.horizontalHeader().sortIndicatorOrder()
         self.addonList.sortItems(0)
         for row in iter(range(self.addonList.rowCount())):
             addons.append(dict(
@@ -417,6 +420,7 @@ class MainWidget(Qt.QMainWindow):
                 toc=str(self.addonList.item(row,3).text()),
                 allowbeta=bool(self.addonList.item(row, 4).checkState() == Qt.Qt.Checked)
             ))
+        self.addonList.sortItems(sortSection, sortOrder)
         data={}
         data['addons'] = addons
         data['dbversion'] = defines.LCURSE_DBVERSION
