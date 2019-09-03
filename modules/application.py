@@ -323,6 +323,7 @@ class MainWidget(Qt.QMainWindow):
                     if not addons:
                         self.addonList.setRowCount(row + 1)
                         self.insertAddon(row, name, uri, version, tocVersion, False)
+                        self.setRowColor(row, Qt.Qt.cyan)
                     elif tocVersion:
                         for addon in addons:
                             self.addonList.item(addon.row(), 3).setText(tocVersion)
