@@ -244,7 +244,7 @@ class MainWidget(Qt.QMainWindow):
         version_re = re.compile(r"^## *Version: *(.*)$")
         curse_re = re.compile(r"^## °X-Curse-Project-ID: *(.*)")
         tocversion_re = re.compile(r"^## *Interface: *(\d*)")
-        with open(toc, encoding="utf8", errors='replace') as f:
+        with open(toc, encoding="utf-8-sig", errors='replace') as f:
             line = f.readline()
             while line != "":
                 line = line.strip()
