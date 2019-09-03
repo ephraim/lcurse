@@ -388,20 +388,21 @@ class UpdateCatalogWorker(Qt.QThread):
 
         lastpage = 1
         if page == 1:
-            pager = soup.select("ul.b-pagination-list.paging-list.j-tablesorter-pager.j-listing-pagination li")
+            pager = soup.select("a.pagination-item span")
             if pager:
-                lastpage = int(pager[len(pager) - 2].contents[0].contents[0])
+                lastpage = int(pager[len(pager) - 1].contents[0])
 
-        projects = soup.select("li.project-list-item")  # li .title h4 a")
+        projects = soup.select("div.project-listing-row")
         self.addonsMutex.lock()
         for project in projects:
-            links=project.select("a.button--download")
-            texts=project.select("a h2")
+            links=project.select("a.button--hollow")
+            texts=project.select("a h3")
             for text in texts:
                 nome=text.string.replace('\\r','').replace('\\n','').strip()
                 break
             for link in links:
-                href=link.get("href", link.get("data-normal-href")).replace("/download",'')
+                href=link.get("href", link.get("data-normal-href")).replace("/woW/", "/wow/").replace("/download",'')
+                break
             self.addons.append([nome, "https://www.curseforge.com{}".format(href)])
         self.progress.emit(len(self.addons))
         self.addonsMutex.unlock()
