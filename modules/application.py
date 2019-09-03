@@ -55,8 +55,7 @@ class MainWidget(Qt.QMainWindow):
     def __init__(self):
         super(MainWidget, self).__init__()
         self.ensureLCurseFolder()
-        self.addonsFile = os.path.expanduser(defines.LCURSE_ADDONS)
-        defines.TOC=self.getWowToc()
+        self.setActiveWowVersion(defines.WOW_VERSION_DEFAULT)
         self.addWidgets()
 
         self.addons = []
@@ -72,10 +71,25 @@ class MainWidget(Qt.QMainWindow):
             print(buildinfo)
             with open(buildinfo, encoding="utf8", errors='replace') as f:
                 line = f.readline()
-                version=f.readline().split('|')[11]
+                if self.wowVersion == 'retail':
+                    wowVersion = 'wow'
+                else:
+                    wowVersion = 'wow_{}'.format(self.wowVersion)
+                while True:
+                    line = f.readline()
+                    if line:
+                        line = line.strip().split('|')
+                        if line[13] == wowVersion:
+                            version = line[12]
+                            break
+                    else:
+                        break
                 f.close()
             v=version.split('.')
-            return str(int(v[0])*10000 + int(v[1])*100)
+            if self.wowVersion == 'classic':
+                return str(int(v[0])*10000 + int(v[1])*100 + int(v[2]))
+            else:
+                return str(int(v[0])*10000 + int(v[1])*100)
         except Exception as e:
             return settings.value(defines.WOW_TOC_KEY,defines.TOC)
             print("Error messages",e)
@@ -196,6 +210,14 @@ class MainWidget(Qt.QMainWindow):
         toolbar = self.addToolBar(self.tr("Catalog"))
         toolbar.addAction(actionCatalogUpdate)
 
+        wowVersions = self.getWowVersions()
+        if len(wowVersions) > 1:
+            wowVersionSelector = Qt.QComboBox()
+            wowVersionSelector.addItems(wowVersions)
+            wowVersionSelector.currentTextChanged.connect(self.setActiveWowVersion)
+            toolbar = self.addToolBar(self.tr("WoW Version"))
+            toolbar.addWidget(wowVersionSelector)
+
         self.addonList = Grid(self)
 
         self.addonList.setColumnCount(5)
@@ -206,7 +228,6 @@ class MainWidget(Qt.QMainWindow):
         screen = Qt.QDesktopWidget().screenGeometry()
         size = self.geometry()
         self.move((screen.width() - size.width()) / 2, (screen.height() - size.height()) / 5)
-        self.setWindowTitle('WoW!Curse ' + '(TOC: ' + defines.TOC +')')
 
         box.addWidget(self.addonList)
         self.statusBar().showMessage(self.tr("Ready"))
@@ -215,6 +236,29 @@ class MainWidget(Qt.QMainWindow):
 
     #	def resizeEvent(self, event):
     #		print(self.geometry())
+
+    def getWowVersions(self):
+        wowVersions = ["retail"]
+        settings = Qt.QSettings()
+        for wowVersion in ("classic", "ptr"):
+            directory = "{}/_{}_/Interface/AddOns".format(str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)), wowVersion)
+            if os.path.exists(directory):
+                wowVersions.append(wowVersion)
+        return wowVersions
+
+    def setActiveWowVersion(self, text):
+        if not hasattr(self, 'wowVersion') or self.wowVersion != text:
+            if hasattr(self, 'addons'):
+                self.saveAddons()
+            self.wowVersion = text
+            defines.TOC=self.getWowToc()
+            self.setWindowTitle('WoW!Curse ({}: {})'.format(self.wowVersion, defines.TOC))
+            if text == defines.WOW_VERSION_DEFAULT:
+                self.addonsFile = os.path.expanduser(defines.LCURSE_ADDONS)
+            else:
+                self.addonsFile = os.path.expanduser(defines.LCURSE_ADDONS_BASE.format(text))
+            if hasattr(self, 'addons'):
+                self.loadAddons()
 
     def ensureLCurseFolder(self):
         if not os.path.exists(defines.LCURSE_FOLDER):
@@ -314,7 +358,7 @@ class MainWidget(Qt.QMainWindow):
 
     def importAddons(self):
         settings = Qt.QSettings()
-        parent = "{}/_retail_/Interface/AddOns".format(str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)))
+        parent = "{}/_{}_/Interface/AddOns".format(str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)), self.wowVersion)
         contents = os.listdir(parent)
         for item in contents:
             itemDir = "{}/{}".format(parent, item)
@@ -369,6 +413,7 @@ class MainWidget(Qt.QMainWindow):
                     dbversion = 0
                     addons = data 
         if not addons:
+            self.addonList.setRowCount(0)
             return
         self.addonList.setRowCount(len(addons))
         tocs=self.updateDatabaseFormat(dbversion)
@@ -478,7 +523,7 @@ class MainWidget(Qt.QMainWindow):
             return {}
         print("Database update!")
         settings = Qt.QSettings()
-        parent = "{}/_retail_/Interface/AddOns".format(str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)))
+        parent = "{}/_{}_/Interface/AddOns".format(str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)), self.wowVersion1)
         contents = os.listdir(parent)
         contents.sort()
         tocversions={}
@@ -513,7 +558,7 @@ class MainWidget(Qt.QMainWindow):
         if answer != Qt.QMessageBox.Yes:
             return
         settings = Qt.QSettings()
-        parent = "{}/_retail_/Interface/AddOns".format(str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)))
+        parent = "{}/_{}_/Interface/AddOns".format(str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)), self.wowVersion)
         contents = os.listdir(parent)
         addonName =  str(self.addonList.item(row, 0).text())
         deleted = False
@@ -593,7 +638,7 @@ class MainWidget(Qt.QMainWindow):
         allowBeta = bool(self.addonList.item(row, 4).checkState() == Qt.Qt.Checked)
         addons.append((row, name, uri, version, allowBeta))
 
-        checkDlg = waitdlg.CheckDlg(self, addons)
+        checkDlg = waitdlg.CheckDlg(self, self.wowVersion, addons)
         checkDlg.checkFinished.connect(self.onCheckFinished)
         checkDlg.exec_()
 
@@ -606,7 +651,7 @@ class MainWidget(Qt.QMainWindow):
             allowBeta = bool(self.addonList.item(row, 4).checkState() == Qt.Qt.Checked)
             addons.append((row, name, uri, version, allowBeta))
 
-        checkDlg = waitdlg.CheckDlg(self, addons)
+        checkDlg = waitdlg.CheckDlg(self, self.wowVersion, addons)
         checkDlg.checkFinished.connect(self.onCheckFinished)
         checkDlg.exec_()
 
@@ -648,7 +693,7 @@ class MainWidget(Qt.QMainWindow):
         addons.append((row, name, uri, version, allowBeta, data))
 
         if addons:
-            updateDlg = waitdlg.UpdateDlg(self, addons)
+            updateDlg = waitdlg.UpdateDlg(self, self.wowVersion, addons)
             updateDlg.updateFinished.connect(self.onUpdateFinished)
             updateDlg.exec_()
             self.saveAddons()
@@ -666,7 +711,7 @@ class MainWidget(Qt.QMainWindow):
                 addons.append((row, name, uri, version, allowBeta, data))
 
         if addons:
-            updateDlg = waitdlg.UpdateDlg(self, addons)
+            updateDlg = waitdlg.UpdateDlg(self, self.wowVersion, addons)
             updateDlg.updateFinished.connect(self.onUpdateFinished)
             updateDlg.exec_()
             self.saveAddons()

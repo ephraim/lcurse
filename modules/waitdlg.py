@@ -79,7 +79,7 @@ class CheckDlg(Qt.QDialog):
     checkFinished = Qt.pyqtSignal(Qt.QVariant, bool, Qt.QVariant)
     closeSignal = Qt.pyqtSignal()
 
-    def __init__(self, parent, addons):
+    def __init__(self, parent, wowVersion, addons):
         super(CheckDlg, self).__init__(parent)
         settings = Qt.QSettings()
         layout = Qt.QVBoxLayout(self)
@@ -99,6 +99,7 @@ class CheckDlg(Qt.QDialog):
         cancelBox.addWidget(self.cancelButton)
         cancelBox.addStretch()
         layout.addLayout(cancelBox)
+        self.wowVersion = wowVersion
         self.addons = addons
         self.maxThreads = int(settings.value(defines.LCURSE_MAXTHREADS_KEY, defines.LCURSE_MAXTHREADS_DEFAULT))
         self.sem = Qt.QSemaphore(self.maxThreads)
@@ -125,7 +126,7 @@ class CheckDlg(Qt.QDialog):
         for addon in self.addons:
             self.sem.acquire()
             if not self.cancelled:
-                thread = CheckWorker(addon)
+                thread = CheckWorker(self.wowVersion, addon)
                 thread.checkFinished.connect(self.onCheckFinished)
                 thread.start()
                 self.threads.append(thread)
@@ -162,15 +163,16 @@ class CheckDlg(Qt.QDialog):
 class CheckWorker(Qt.QThread):
     checkFinished = Qt.pyqtSignal(Qt.QVariant, bool, Qt.QVariant)
 
-    def __init__(self, addon):
+    def __init__(self, wowVersion, addon):
         super(CheckWorker, self).__init__()
+        self.wowVersion = wowVersion
         self.addon = addon
 
     def needsUpdateGit(self):
         try:
             settings = Qt.QSettings()
-            dest = "{}/_retail_/Interface/AddOns/{}".format(
-                settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT),
+            dest = "{}/_{}_/Interface/AddOns/{}".format(
+                settings.value(defines.WOW_FOLDER_KEY, self.wowVersion, defines.WOW_FOLDER_DEFAULT),
                 os.path.basename(str(self.addon[2])[:-4]))
             originCurrent = str(check_output(["git", "ls-remote", str(self.addon[2]), "HEAD"]), "utf-8").split()[0]
             localCurrent = self.addon[3]
@@ -191,15 +193,26 @@ class CheckWorker(Qt.QThread):
             beta=self.addon[4]
             lis = soup.findAll("tr")
             if lis:
-                versionIdx = 1
                 isOk=False
-                while True:
-                    version = tuple(lis[versionIdx].findAll('td')[4].stripped_strings)
-                    if int(version[0][0]) > 1 or len(version) > 1 and version[1][0] == '+':
-                        isOk = beta or lis[versionIdx].td.div.span.string=='R'
-                        if isOk:
-                            break
-                    versionIdx=versionIdx+1
+                versionIdx = 1
+                if self.wowVersion == 'classic':
+                    while versionIdx < len(lis):
+                        version = tuple(lis[versionIdx].findAll('td')[4].stripped_strings)
+                        print(version)
+                        if int(version[0][0]) == 1 or len(version) > 7 and version[1][0] == '+':
+                            isOk = beta or lis[versionIdx].td.div.span.string=='R'
+                            if isOk:
+                                break
+                        versionIdx=versionIdx+1
+                if not isOk:
+                    versionIdx = 1
+                    while versionIdx < len(lis):
+                        version = tuple(lis[versionIdx].findAll('td')[4].stripped_strings)
+                        if int(version[0][0]) > 1 or len(version) > 1 and version[1][0] == '+':
+                            isOk = beta or lis[versionIdx].td.div.span.string=='R'
+                            if isOk:
+                                break
+                        versionIdx=versionIdx+1
                 row=lis[versionIdx]
                 elem = row.find("a",attrs={"data-action":"file-link"})
                 version=elem.string
@@ -232,7 +245,7 @@ class CheckWorker(Qt.QThread):
 class UpdateDlg(Qt.QDialog):
     updateFinished = Qt.pyqtSignal(Qt.QVariant, bool)
 
-    def __init__(self, parent, addons):
+    def __init__(self, parent, wowVersion, addons):
         super(UpdateDlg, self).__init__(parent)
         settings = Qt.QSettings()
         layout = Qt.QVBoxLayout(self)
@@ -244,6 +257,7 @@ class UpdateDlg(Qt.QDialog):
         self.progress.setRange(0, len(addons))
         self.progress.setValue(0)
         self.progress.setFormat("%v / %m | %p%")
+        self.wowVersion = wowVersion
         layout.addWidget(self.progress)
         self.addons = addons
         self.maxThreads = int(settings.value(defines.LCURSE_MAXTHREADS_KEY, defines.LCURSE_MAXTHREADS_DEFAULT))
@@ -253,7 +267,7 @@ class UpdateDlg(Qt.QDialog):
         self.threads = []
         for addon in self.addons:
             self.sem.acquire()
-            thread = UpdateWorker(addon)
+            thread = UpdateWorker(self.wowVersion, addon)
             thread.updateFinished.connect(self.onUpdateFinished)
             thread.start()
             self.threads.append(thread)
@@ -275,14 +289,15 @@ class UpdateDlg(Qt.QDialog):
 class UpdateWorker(Qt.QThread):
     updateFinished = Qt.pyqtSignal(Qt.QVariant, bool)
 
-    def __init__(self, addon):
+    def __init__(self, wowVersion, addon):
         super(UpdateWorker, self).__init__()
+        self.wowVersion = wowVersion
         self.addon = addon
 
     def doUpdateGit(self):
         try:
             settings = Qt.QSettings()
-            dest = "{}/_retail_/Interface/AddOns".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
+            dest = "{}/_{}_/Interface/AddOns".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT), self.wowVersion)
             destAddon = "{}/{}".format(dest, os.path.basename(str(self.addon[2]))[:-4])
             if not os.path.exists(destAddon):
                 os.chdir(dest)
@@ -299,7 +314,7 @@ class UpdateWorker(Qt.QThread):
         try:
             settings = Qt.QSettings()
             response = OpenWithRetry(self.addon[5][1])
-            dest = "{}/_retail_/Interface/AddOns/".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
+            dest = "{}/_{}_/Interface/AddOns/".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT), self.wowVersion)
 
             with tempfile.NamedTemporaryFile('w+b') as zipped:
                 zipped.write(response.read())
@@ -312,7 +327,7 @@ class UpdateWorker(Qt.QThread):
                         t=r2.split(nome)
                         if len(t) == 2:
                             break
-                    toc="{}/_retail_/Interface/AddOns/{}".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT),nome)
+                    toc="{}/_{}_/Interface/AddOns/{}".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT), self.wowVersion, nome)
                     z.extractall(dest)
             return True, toc
         except Exception as e:
