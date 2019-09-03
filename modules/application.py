@@ -35,10 +35,6 @@ class Grid(Qt.QTableWidget):
         row=self.currentRow()
         name=self.item(row,0).text()
         self.menu.addAction(self.tr("Context menu for {}").format(name))
-        removefromlistAction = Qt.QAction(self.tr("Remove from list"),self)
-        removefromlistAction.setStatusTip(self.tr("Leave all files unaltered, useful for subaddons"))
-        removefromlistAction.triggered.connect(self.removeFromList)
-        self.menu.addAction(removefromlistAction)
         actionUpdate = Qt.QAction(self.tr("Update addon"), self)
         actionUpdate.setStatusTip(self.tr("Update currently selected addons if needed"))
         actionUpdate.triggered.connect(self.parent.updateAddon)        
@@ -47,12 +43,11 @@ class Grid(Qt.QTableWidget):
         actionForceUpdate.setStatusTip(self.tr("Unconditionally update currently selected addons"))
         actionForceUpdate.triggered.connect(self.parent.forceUpdateAddon)        
         self.menu.addAction(actionForceUpdate)
+        actionRemovefromlist = Qt.QAction(self.tr("Remove addon from list"),self)
+        actionRemovefromlist.setStatusTip(self.tr("Leave all files unaltered, useful for subaddons"))
+        actionRemovefromlist.triggered.connect(self.parent.removeFromList)
+        self.menu.addAction(actionRemovefromlist)
         self.menu.popup(Qt.QCursor.pos())
-
-    def removeFromList(self):
-        row = self.currentRow()
-        self.removeRow(row)
-        self.parent.saveAddons()
         
         
 
@@ -148,6 +143,11 @@ class MainWidget(Qt.QMainWindow):
         actionUpdate.setStatusTip(self.tr("Update currently selected addons if needed"))
         actionUpdate.triggered.connect(self.updateAddon)
 
+        actionRemovefromlist = Qt.QAction(self.tr("Remove addon from list"),self)
+        actionRemovefromlist.setShortcut(Qt.QKeySequence.Delete)
+        actionRemovefromlist.setStatusTip(self.tr("Leave all files unaltered, useful for subaddons"))
+        actionRemovefromlist.triggered.connect(self.removeFromList)
+
         actionAdd = Qt.QAction(self.tr("Add addon"), self)
         actionAdd.setStatusTip(self.tr("Add a new addon"))
         actionAdd.triggered.connect(self.addAddon)
@@ -167,6 +167,7 @@ class MainWidget(Qt.QMainWindow):
         menuAddons.addSeparator()
         menuAddons.addAction(actionUpdateAll)
         menuAddons.addAction(actionUpdate)
+        menuAddons.addAction(actionRemovefromlist)
         menuAddons.addSeparator()
         menuAddons.addAction(actionAdd)
         menuAddons.addAction(actionRemove)
@@ -473,6 +474,11 @@ class MainWidget(Qt.QMainWindow):
         with open(defines.LCURSE_ADDON_TOCS_CACHE, "w") as f:
             json.dump(tocversions, f,indent=1)
         return tocversions
+
+    def removeFromList(self):
+        row = self.addonList.currentRow()
+        self.addonList.removeRow(row)
+        self.saveAddons()
 
     def removeAddon(self):
         row = self.addonList.currentRow()
