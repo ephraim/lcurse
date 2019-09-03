@@ -242,7 +242,7 @@ class MainWidget(Qt.QMainWindow):
         curse_title_re = re.compile(r"^## *X-Curse-Project-Name: *(.*)")
         curse_version_re = re.compile(r"^## *X-Curse-Packaged-Version: *(.*)")
         version_re = re.compile(r"^## *Version: *(.*)$")
-        curse_re = re.compile(r"^## °X-Curse-Project-ID: *(.*)")
+        curse_re = re.compile(r"^## *X-Curse-Project-ID: *(.*)")
         tocversion_re = re.compile(r"^## *Interface: *(\d*)")
         with open(toc, encoding="utf-8-sig", errors='replace') as f:
             line = f.readline()
@@ -296,7 +296,10 @@ class MainWidget(Qt.QMainWindow):
         
         uri = "https://www.curseforge.com/wow/addons/{}".format(name.lower().replace(" ", "-"))
         if curseId:
-            uri = "https://www.curseforge.com/wow/addons/{}".format(curseId)
+            if curseId.isdigit():
+                uri = "https://www.curseforge.com/projects/{}".format(curseId)
+            else:
+                uri = "https://www.curseforge.com/wow/addons/{}".format(curseId)
         
             #return ["", "", "", ""]
 
