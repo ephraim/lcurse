@@ -110,6 +110,11 @@ class MainWidget(Qt.QMainWindow):
         actionExit.setStatusTip(self.tr("Exit application"))
         actionExit.triggered.connect(self.close)
 
+        actionClearCell = Qt.QAction(self.tr("Remove selected addon information"),self)
+        actionClearCell.setShortcut("Backspace")
+        actionClearCell.setStatusTip(self.tr("Clear specific addon information"))
+        actionClearCell.triggered.connect(self.clearCell)
+
         menuFile = menubar.addMenu(self.tr("General"))
         menuFile.addAction(actionLoad)
         menuFile.addAction(actionSave)
@@ -122,6 +127,7 @@ class MainWidget(Qt.QMainWindow):
         self.addAction(actionSave)
         self.addAction(actionPrefs)
         self.addAction(actionExit)
+        self.addAction(actionClearCell)
 
         actionCheckAll = Qt.QAction(self.tr("Check all addons"), self)
         actionCheckAll.setShortcut('Ctrl+Shift+A')
@@ -488,6 +494,10 @@ class MainWidget(Qt.QMainWindow):
         row = self.addonList.currentRow()
         self.addonList.removeRow(row)
         self.saveAddons()
+
+    def clearCell(self):
+        cell = self.addonList.currentItem()
+        cell.setText("")
 
     def removeAddon(self):
         row = self.addonList.currentRow()
