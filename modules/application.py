@@ -367,12 +367,9 @@ class MainWidget(Qt.QMainWindow):
                     if tmp[0] == "":
                         continue
                     (name, uri, version, tocVersion) = tmp
-                    row = self.addonList.rowCount()
                     addons = self.addonList.findItems(name, Qt.Qt.MatchExactly)
                     if not addons:
-                        self.addonList.setRowCount(row + 1)
-                        self.insertAddon(row, name, uri, version, tocVersion, False)
-                        self.setRowColor(row, Qt.Qt.cyan)
+                        self.insertAddon(name, uri, version, tocVersion, False)
                     elif tocVersion:
                         for addon in addons:
                             self.addonList.item(addon.row(), 3).setText(tocVersion)
@@ -383,7 +380,10 @@ class MainWidget(Qt.QMainWindow):
         pref = preferences.PreferencesDlg(self)
         pref.exec_()
 
-    def insertAddon(self, row, name, uri, version, tocVersion, allowBeta):
+    def insertAddon(self, name, uri, version, tocVersion, allowBeta):
+        self.addonList.setSortingEnabled(False)
+        row = self.addonList.rowCount()
+        self.addonList.insertRow(row)
         self.addonList.setItem(row, 0, Qt.QTableWidgetItem(name))
         self.addonList.setItem(row, 1, Qt.QTableWidgetItem(uri))
         self.addonList.setItem(row, 2, Qt.QTableWidgetItem(version))
@@ -391,6 +391,8 @@ class MainWidget(Qt.QMainWindow):
         allowBetaItem = Qt.QTableWidgetItem()
         allowBetaItem.setCheckState(Qt.Qt.Checked if allowBeta else Qt.Qt.Unchecked)
         self.addonList.setItem(row, 4, allowBetaItem)
+        self.setRowColor(row, Qt.Qt.cyan)
+        self.addonList.setSortingEnabled(True)
 
     def loadAddonCatalog(self):
         if os.path.exists(defines.LCURSE_ADDON_CATALOG):
@@ -507,15 +509,7 @@ class MainWidget(Qt.QMainWindow):
                 name = os.path.basename(url)[:-4]
 
         if name:
-            newrow = self.addonList.rowCount()
-            self.addonList.insertRow(newrow)
-            self.addonList.setItem(newrow, 0, Qt.QTableWidgetItem(name))
-            self.addonList.setItem(newrow, 1, Qt.QTableWidgetItem(url))
-            self.addonList.setItem(newrow, 2, Qt.QTableWidgetItem(""))
-            self.addonList.setItem(newrow, 3, Qt.QTableWidgetItem(""))
-            allowBetaItem = Qt.QTableWidgetItem()
-            allowBetaItem.setCheckState(Qt.Qt.Unchecked)
-            self.addonList.setItem(newrow, 4, allowBetaItem)
+            self.insertAddon(name, url, "", "", False)
 
     def updateDatabaseFormat(self,oldVersion):
         if oldVersion != defines.LCURSE_DBVERSION:
