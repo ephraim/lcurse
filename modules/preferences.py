@@ -7,8 +7,6 @@ class PreferencesDlg(Qt.QDialog):
         super(PreferencesDlg, self).__init__(parent)
         self.settings = Qt.QSettings()
 
-        print(defines)
-
         layout = Qt.QVBoxLayout(self)
 
         layout.addWidget(Qt.QLabel(self.tr("WoW Install Folder:"), self))

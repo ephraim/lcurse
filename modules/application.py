@@ -68,7 +68,6 @@ class MainWidget(Qt.QMainWindow):
         settings = Qt.QSettings()
         try:
             buildinfo="{}/.build.info".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
-            print(buildinfo)
             with open(buildinfo, encoding="utf8", errors='replace') as f:
                 line = f.readline()
                 if self.wowVersion == 'retail':
@@ -518,7 +517,8 @@ class MainWidget(Qt.QMainWindow):
             self.addonList.setItem(newrow, 4, allowBetaItem)
 
     def updateDatabaseFormat(self,oldVersion):
-        print("Db version is ", oldVersion, " vs ", defines.LCURSE_DBVERSION)
+        if oldVersion != defines.LCURSE_DBVERSION:
+            print("Db version is ", oldVersion, " vs ", defines.LCURSE_DBVERSION)
         if oldVersion >= defines.LCURSE_DBVERSION:
             return {}
         print("Database update!")
