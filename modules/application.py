@@ -221,7 +221,6 @@ class MainWidget(Qt.QMainWindow):
 
         self.addonList.setColumnCount(5)
         self.addonList.setHorizontalHeaderLabels(["Name", "Url", "Version", "Toc", "Allow Beta"])
-        self.addonList.setSortingEnabled(True)
 
         self.resize(1070, 815)
         screen = Qt.QDesktopWidget().screenGeometry()
@@ -399,6 +398,7 @@ class MainWidget(Qt.QMainWindow):
                 self.availableAddons = json.load(c)
 
     def loadAddons(self):
+        self.addonList.setSortingEnabled(False)
         self.addonList.clearContents()
         addons = None
         if os.path.exists(self.addonsFile):
@@ -449,6 +449,7 @@ class MainWidget(Qt.QMainWindow):
             self.addonList.setItem(row, 4, allowBetaItem)
         self.addonList.resizeColumnsToContents()
         self.adjustSize()
+        self.addonList.setSortingEnabled(True)
         
     def saveAddons(self):
         print("Saving addons to ",self.addonsFile)
