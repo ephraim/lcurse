@@ -29,15 +29,19 @@ class Grid(Qt.QTableWidget):
     def __init__(self, parent=None):
         self.parent = parent
         super().__init__(parent.mainWidget)
+        self.setSelectionBehavior(Qt.QAbstractItemView.SelectRows)
     
     def contextMenuEvent(self,event):
         self.menu = Qt.QMenu(self)
-        row=self.currentRow()
-        name=self.item(row,0).text()
+        rows=self.currentRows()
+        if len(rows) == 1:
+            name = self.item(rows[0], 0).text()
+        else:
+            name = self.tr("multiple addons")
         self.menu.addAction(self.tr("Context menu for {}").format(name))
         actionUpdate = Qt.QAction(self.tr("Update addon"), self)
         actionUpdate.setStatusTip(self.tr("Update currently selected addons if needed"))
-        actionUpdate.triggered.connect(self.parent.updateAddon)        
+        actionUpdate.triggered.connect(self.parent.updateAddons)
         self.menu.addAction(actionUpdate)
         actionForceUpdate = Qt.QAction(self.tr("Force Update addon"), self)
         actionForceUpdate.setStatusTip(self.tr("Unconditionally update currently selected addons"))
@@ -49,6 +53,12 @@ class Grid(Qt.QTableWidget):
         self.menu.addAction(actionRemovefromlist)
         self.menu.popup(Qt.QCursor.pos())
         
+    def currentRows(self):
+        rows = []
+        for row in self.selectionModel().selectedRows():
+            rows.append(row.row())
+        rows.sort()
+        return rows
         
 
 class MainWidget(Qt.QMainWindow):
@@ -145,22 +155,22 @@ class MainWidget(Qt.QMainWindow):
         actionCheckAll = Qt.QAction(self.tr("Check all addons"), self)
         actionCheckAll.setShortcut('Ctrl+Shift+A')
         actionCheckAll.setStatusTip(self.tr("Check all addons for new version"))
-        actionCheckAll.triggered.connect(self.checkAddonsForUpdate)
+        actionCheckAll.triggered.connect(self.checkAllAddonsForUpdate)
 
         actionCheck = Qt.QAction(self.tr("Check addon"), self)
         actionCheck.setShortcut('Ctrl+A')
         actionCheck.setStatusTip(self.tr("Check currently selected addon for new version"))
-        actionCheck.triggered.connect(self.checkAddonForUpdate)
+        actionCheck.triggered.connect(self.checkAddonsForUpdate)
 
         actionUpdateAll = Qt.QAction(self.tr("Update all addons"), self)
         actionUpdateAll.setShortcut("Ctrl+Shift+U")
         actionUpdateAll.setStatusTip(self.tr("Update all addons which need an update"))
-        actionUpdateAll.triggered.connect(self.updateAddons)
+        actionUpdateAll.triggered.connect(self.updateAllAddons)
 
         actionUpdate = Qt.QAction(self.tr("Update addon"), self)
         actionUpdate.setShortcut("Ctrl+U")
         actionUpdate.setStatusTip(self.tr("Update currently selected addons if needed"))
-        actionUpdate.triggered.connect(self.updateAddon)
+        actionUpdate.triggered.connect(self.updateAddons)
 
         actionRemovefromlist = Qt.QAction(self.tr("Remove addon from list"),self)
         actionRemovefromlist.setShortcut(Qt.QKeySequence.Delete)
@@ -535,8 +545,10 @@ class MainWidget(Qt.QMainWindow):
         return tocversions
 
     def removeFromList(self):
-        row = self.addonList.currentRow()
-        self.addonList.removeRow(row)
+        rows = self.addonList.currentRows()
+        rows.reverse()
+        for row in rows:
+            self.addonList.removeRow(row)
         self.saveAddons()
 
     def clearCell(self):
@@ -624,22 +636,12 @@ class MainWidget(Qt.QMainWindow):
         else:
             self.setRowColor(addon[0], Qt.Qt.white)
 
-    def checkAddonForUpdate(self):
-        row = self.addonList.currentRow()
-        addons = []
-        name = self.addonList.item(row, 0).text()
-        uri = self.addonList.item(row, 1).text()
-        version = self.addonList.item(row, 2).text()
-        allowBeta = bool(self.addonList.item(row, 4).checkState() == Qt.Qt.Checked)
-        addons.append((row, name, uri, version, allowBeta))
+    def checkAddonsForUpdate(self, *args, rows=None):
+        if rows == None:
+            rows = self.addonList.currentRows()
 
-        checkDlg = waitdlg.CheckDlg(self, self.wowVersion, addons)
-        checkDlg.checkFinished.connect(self.onCheckFinished)
-        checkDlg.exec_()
-
-    def checkAddonsForUpdate(self):
         addons = []
-        for row in iter(range(self.addonList.rowCount())):
+        for row in rows:
             name = self.addonList.item(row, 0).text()
             uri = self.addonList.item(row, 1).text()
             version = self.addonList.item(row, 2).text()
@@ -649,6 +651,9 @@ class MainWidget(Qt.QMainWindow):
         checkDlg = waitdlg.CheckDlg(self, self.wowVersion, addons)
         checkDlg.checkFinished.connect(self.onCheckFinished)
         checkDlg.exec_()
+
+    def checkAllAddonsForUpdate(self):
+        self.checkAddonsForUpdate(rows=iter(range(self.addonList.rowCount())))
 
     def onUpdateFinished(self, addon, result):
         if result:
@@ -665,38 +670,23 @@ class MainWidget(Qt.QMainWindow):
             self.addonList.item(addon[0], 0).setData(Qt.Qt.UserRole, None)
             self.setRowColor(addon[0], Qt.Qt.green)
 
-    def forceUpdateAddon(self):
-        row = self.addonList.currentRow()
-        self.addonList.item(row, 2).setText("")
-        self.updateAddon()
+    def forceUpdateAddon(self, *args, rows=None):
+        if rows == None:
+            rows = self.addonList.currentRows()
 
-    def updateAddon(self):
-        row = self.addonList.currentRow()
+        for row in rows:
+            self.addonList.item(row, 2).setText("")
+
+        self.updateAddons(rows=rows)
+
+    def updateAddons(self, *args, rows=None):
+        self.checkAddonsForUpdate(rows=rows)
         addons = []
-        data = self.addonList.item(row, 0).data(Qt.Qt.UserRole)
-        if not data:
-            self.checkAddonForUpdate()
 
-        data = self.addonList.item(row, 0).data(Qt.Qt.UserRole)
-        if not data:
-            return
+        if rows == None:
+            rows = self.addonList.currentRows()
 
-        name = self.addonList.item(row, 0).text()
-        uri = self.addonList.item(row, 1).text()
-        version = self.addonList.item(row, 2).text()
-        allowBeta = bool(self.addonList.item(row, 4).checkState() == Qt.Qt.Checked)
-        addons.append((row, name, uri, version, allowBeta, data))
-
-        if addons:
-            updateDlg = waitdlg.UpdateDlg(self, self.wowVersion, addons)
-            updateDlg.updateFinished.connect(self.onUpdateFinished)
-            updateDlg.exec_()
-            self.saveAddons()
-
-    def updateAddons(self):
-        self.checkAddonsForUpdate()
-        addons = []
-        for row in iter(range(self.addonList.rowCount())):
+        for row in rows:
             data = self.addonList.item(row, 0).data(Qt.Qt.UserRole)
             if data:
                 name = self.addonList.item(row, 0).text()
@@ -710,6 +700,9 @@ class MainWidget(Qt.QMainWindow):
             updateDlg.updateFinished.connect(self.onUpdateFinished)
             updateDlg.exec_()
             self.saveAddons()
+
+    def updateAllAddons(self):
+        self.updateAddons(rows=iter(range(self.addonList.rowCount())))
 
     def onUpdateCatalogFinished(self, addons):
         print("retrieved list of addons: {}".format(len(addons)))
