@@ -198,7 +198,7 @@ class CheckWorker(Qt.QThread):
                 if self.wowVersion == 'classic':
                     while versionIdx < len(lis):
                         version = tuple(lis[versionIdx].findAll('td')[4].stripped_strings)
-                        if int(version[0][0]) == 1 or len(version) > 7 and version[1][0] == '+':
+                        if int(version[0][0]) == 1 or len(version) > 1 and int(version[0][0]) > 7 and version[1][0] == '+':
                             isOk = beta or lis[versionIdx].td.div.span.string=='R'
                             if isOk:
                                 break
