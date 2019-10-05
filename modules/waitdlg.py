@@ -1,7 +1,7 @@
 from PyQt5 import Qt
 from bs4 import BeautifulSoup
 import urllib.parse
-from urllib.request import build_opener, HTTPCookieProcessor, HTTPError
+import cfscrape
 from http import cookiejar
 import zipfile
 from modules import defines
@@ -15,10 +15,7 @@ from subprocess import check_output, check_call
 import hashlib
 import json
 
-opener = build_opener(HTTPCookieProcessor(cookiejar.CookieJar()))
-
-# default User-Agent ('Python-urllib/2.6') will *not* work
-opener.addheaders = [('User-Agent', 'Mozilla/5.0'), ]
+scraper = cfscrape.create_scraper()
 
 # Debug helper: caches html page to not hammer server while testing/debugging/coding    
 class CachedResponse:
@@ -61,7 +58,7 @@ def OpenWithRetry(url):
     # Retry 5 times
     while count < maxcount:
         try:
-            response = opener.open(urllib.parse.urlparse(urllib.parse.quote(url, ':/?=')).geturl())
+            response = scraper.get(urllib.parse.urlparse(urllib.parse.quote(url, ':/?=')).geturl())
 
             return response
 
@@ -188,7 +185,7 @@ class CheckWorker(Qt.QThread):
             pattern = re.compile("-nolib$")
             url = self.addon[2] + '/files'
             response = OpenWithRetry(url)
-            html = response.read()
+            html = response.content
             soup = BeautifulSoup(html, "lxml")
             beta=self.addon[4]
             lis = soup.findAll("tr")
@@ -221,9 +218,6 @@ class CheckWorker(Qt.QThread):
                     downloadLink = "https://www.curseforge.com/wow/addons/" + addonname + "/download/" + addonid + "/file"
                     return (True, (version, downloadLink))
             return (False, ("", ""))
-            
-        except HTTPError as e:
-            print("Curse Update Exception",e)
         except Exception as e:
             print(e)
         return (False, None)
@@ -316,7 +310,7 @@ class UpdateWorker(Qt.QThread):
             dest = "{}/_{}_/Interface/AddOns/".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT), self.wowVersion)
 
             with tempfile.NamedTemporaryFile('w+b') as zipped:
-                zipped.write(response.read())
+                zipped.write(response.content)
                 zipped.seek(0)
                 with zipfile.ZipFile(zipped, 'r') as z:
                     r=re.compile(".*\.toc$")
@@ -397,7 +391,7 @@ class UpdateCatalogWorker(Qt.QThread):
 
     def retrievePartialListOfAddons(self, page):
         response = OpenWithRetry("https://www.curseforge.com/wow/addons?page={}".format(page))
-        soup = BeautifulSoup(response.read(), "lxml")
+        soup = BeautifulSoup(response.content, "lxml")
         # Curse returns a soft-500
         if soup.find_all("h2", string="Error"):
             print("Server-side error while getting addon list.")
