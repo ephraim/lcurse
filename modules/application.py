@@ -702,7 +702,7 @@ class MainWidget(Qt.QMainWindow):
             self.saveAddons()
 
     def updateAllAddons(self):
-        self.updateAddons(rows=iter(range(self.addonList.rowCount())))
+        self.updateAddons(rows=range(self.addonList.rowCount()))
 
     def onUpdateCatalogFinished(self, addons):
         print("retrieved list of addons: {}".format(len(addons)))
