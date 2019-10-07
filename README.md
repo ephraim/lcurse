@@ -13,6 +13,7 @@ But at least the update is then done via the usuall lcurse way.
 * pipenv
 * PyQt5
 * bs4
+* cfscrape
 * lxml
 
 All requirements can be installed with:
