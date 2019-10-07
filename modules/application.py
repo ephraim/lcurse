@@ -469,7 +469,7 @@ class MainWidget(Qt.QMainWindow):
         sortSection = self.addonList.horizontalHeader().sortIndicatorSection()
         sortOrder = self.addonList.horizontalHeader().sortIndicatorOrder()
         self.addonList.sortItems(0)
-        for row in iter(range(self.addonList.rowCount())):
+        for row in range(self.addonList.rowCount()):
             addons.append(dict(
                 name=str(self.addonList.item(row, 0).text()),
                 uri=str(self.addonList.item(row, 1).text()),
@@ -653,7 +653,7 @@ class MainWidget(Qt.QMainWindow):
         checkDlg.exec_()
 
     def checkAllAddonsForUpdate(self):
-        self.checkAddonsForUpdate(rows=iter(range(self.addonList.rowCount())))
+        self.checkAddonsForUpdate(rows=range(self.addonList.rowCount()))
 
     def onUpdateFinished(self, addon, result):
         if result:
