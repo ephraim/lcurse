@@ -2,6 +2,7 @@ from PyQt5 import Qt
 from bs4 import BeautifulSoup
 import urllib.parse
 import cfscrape
+from requests.exceptions import RequestException
 import zipfile
 from modules import defines
 import os
@@ -217,6 +218,8 @@ class CheckWorker(Qt.QThread):
                     downloadLink = "https://www.curseforge.com/wow/addons/" + addonname + "/download/" + addonid + "/file"
                     return (True, (version, downloadLink))
             return (False, ("", ""))
+        except RequestException as e:
+            print("Curse Update Exception",e)
         except Exception as e:
             print(e)
         return (False, None)
