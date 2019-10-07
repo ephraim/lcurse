@@ -2,7 +2,6 @@ from PyQt5 import Qt
 from bs4 import BeautifulSoup
 import urllib.parse
 import cfscrape
-from http import cookiejar
 import zipfile
 from modules import defines
 import os
