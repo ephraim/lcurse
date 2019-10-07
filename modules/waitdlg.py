@@ -19,12 +19,12 @@ scraper = cfscrape.create_scraper()
 
 # Debug helper: caches html page to not hammer server while testing/debugging/coding    
 class CachedResponse:
-    data = ""
+    content = ""
     def __init__(self,data):
-        self.data=data
+        self.content=data
         
     def read(self):
-        return self.data
+        return self.content
 
 # Debug helper: caches html page to not hammer server while testing/debugging/coding    
 class CacheDecorator(object):
@@ -41,7 +41,7 @@ class CacheDecorator(object):
         except:
             response = self.fun(url)
             f = open(self.cachePrefix +  hash, "w")
-            f.write(str(response.read()))
+            f.write(response.text)
             f.close()
             return response            
             
