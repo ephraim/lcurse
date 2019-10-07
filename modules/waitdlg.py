@@ -1,8 +1,8 @@
 from PyQt5 import Qt
 from bs4 import BeautifulSoup
 import urllib.parse
-from urllib.request import build_opener, HTTPCookieProcessor, HTTPError
-from http import cookiejar
+import cfscrape
+from requests.exceptions import RequestException
 import zipfile
 from modules import defines
 import os
@@ -15,19 +15,16 @@ from subprocess import check_output, check_call
 import hashlib
 import json
 
-opener = build_opener(HTTPCookieProcessor(cookiejar.CookieJar()))
-
-# default User-Agent ('Python-urllib/2.6') will *not* work
-opener.addheaders = [('User-Agent', 'Mozilla/5.0'), ]
+scraper = cfscrape.create_scraper()
 
 # Debug helper: caches html page to not hammer server while testing/debugging/coding    
 class CachedResponse:
-    data = ""
+    content = ""
     def __init__(self,data):
-        self.data=data
+        self.content=data
         
     def read(self):
-        return self.data
+        return self.content
 
 # Debug helper: caches html page to not hammer server while testing/debugging/coding    
 class CacheDecorator(object):
@@ -44,7 +41,7 @@ class CacheDecorator(object):
         except:
             response = self.fun(url)
             f = open(self.cachePrefix +  hash, "w")
-            f.write(str(response.read()))
+            f.write(response.text)
             f.close()
             return response            
             
@@ -61,7 +58,7 @@ def OpenWithRetry(url):
     # Retry 5 times
     while count < maxcount:
         try:
-            response = opener.open(urllib.parse.urlparse(urllib.parse.quote(url, ':/?=')).geturl())
+            response = scraper.get(urllib.parse.urlparse(urllib.parse.quote(url, ':/?=')).geturl())
 
             return response
 
@@ -79,7 +76,7 @@ class CheckDlg(Qt.QDialog):
     checkFinished = Qt.pyqtSignal(Qt.QVariant, bool, Qt.QVariant)
     closeSignal = Qt.pyqtSignal()
 
-    def __init__(self, parent, addons):
+    def __init__(self, parent, wowVersion, addons):
         super(CheckDlg, self).__init__(parent)
         settings = Qt.QSettings()
         layout = Qt.QVBoxLayout(self)
@@ -99,6 +96,7 @@ class CheckDlg(Qt.QDialog):
         cancelBox.addWidget(self.cancelButton)
         cancelBox.addStretch()
         layout.addLayout(cancelBox)
+        self.wowVersion = wowVersion
         self.addons = addons
         self.maxThreads = int(settings.value(defines.LCURSE_MAXTHREADS_KEY, defines.LCURSE_MAXTHREADS_DEFAULT))
         self.sem = Qt.QSemaphore(self.maxThreads)
@@ -125,7 +123,7 @@ class CheckDlg(Qt.QDialog):
         for addon in self.addons:
             self.sem.acquire()
             if not self.cancelled:
-                thread = CheckWorker(addon)
+                thread = CheckWorker(self.wowVersion, addon)
                 thread.checkFinished.connect(self.onCheckFinished)
                 thread.start()
                 self.threads.append(thread)
@@ -162,15 +160,16 @@ class CheckDlg(Qt.QDialog):
 class CheckWorker(Qt.QThread):
     checkFinished = Qt.pyqtSignal(Qt.QVariant, bool, Qt.QVariant)
 
-    def __init__(self, addon):
+    def __init__(self, wowVersion, addon):
         super(CheckWorker, self).__init__()
+        self.wowVersion = wowVersion
         self.addon = addon
 
     def needsUpdateGit(self):
         try:
             settings = Qt.QSettings()
-            dest = "{}/_retail_/Interface/AddOns/{}".format(
-                settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT),
+            dest = "{}/_{}_/Interface/AddOns/{}".format(
+                settings.value(defines.WOW_FOLDER_KEY, self.wowVersion, defines.WOW_FOLDER_DEFAULT),
                 os.path.basename(str(self.addon[2])[:-4]))
             originCurrent = str(check_output(["git", "ls-remote", str(self.addon[2]), "HEAD"]), "utf-8").split()[0]
             localCurrent = self.addon[3]
@@ -186,18 +185,30 @@ class CheckWorker(Qt.QThread):
             pattern = re.compile("-nolib$")
             url = self.addon[2] + '/files'
             response = OpenWithRetry(url)
-            html = response.read()
+            html = response.content
             soup = BeautifulSoup(html, "lxml")
             beta=self.addon[4]
             lis = soup.findAll("tr")
             if lis:
-                versionIdx = 1
                 isOk=False
-                while True:
-                    isOk= beta or lis[versionIdx].td.div.span.string=='R'
-                    if isOk:
-                        break
-                    versionIdx=versionIdx+1
+                versionIdx = 1
+                if self.wowVersion == 'classic':
+                    while versionIdx < len(lis):
+                        version = tuple(lis[versionIdx].findAll('td')[4].stripped_strings)
+                        if int(version[0][0]) == 1 or len(version) > 1 and int(version[0][0]) > 7 and version[1][0] == '+':
+                            isOk = beta or lis[versionIdx].td.div.span.string=='R'
+                            if isOk:
+                                break
+                        versionIdx=versionIdx+1
+                if not isOk:
+                    versionIdx = 1
+                    while versionIdx < len(lis):
+                        version = tuple(lis[versionIdx].findAll('td')[4].stripped_strings)
+                        if int(version[0][0]) > 1 or len(version) > 1 and version[1][0] == '+':
+                            isOk = beta or lis[versionIdx].td.div.span.string=='R'
+                            if isOk:
+                                break
+                        versionIdx=versionIdx+1
                 row=lis[versionIdx]
                 elem = row.find("a",attrs={"data-action":"file-link"})
                 version=elem.string
@@ -207,8 +218,7 @@ class CheckWorker(Qt.QThread):
                     downloadLink = "https://www.curseforge.com/wow/addons/" + addonname + "/download/" + addonid + "/file"
                     return (True, (version, downloadLink))
             return (False, ("", ""))
-            
-        except HTTPError as e:
+        except RequestException as e:
             print("Curse Update Exception",e)
         except Exception as e:
             print(e)
@@ -230,7 +240,7 @@ class CheckWorker(Qt.QThread):
 class UpdateDlg(Qt.QDialog):
     updateFinished = Qt.pyqtSignal(Qt.QVariant, bool)
 
-    def __init__(self, parent, addons):
+    def __init__(self, parent, wowVersion, addons):
         super(UpdateDlg, self).__init__(parent)
         settings = Qt.QSettings()
         layout = Qt.QVBoxLayout(self)
@@ -242,6 +252,7 @@ class UpdateDlg(Qt.QDialog):
         self.progress.setRange(0, len(addons))
         self.progress.setValue(0)
         self.progress.setFormat("%v / %m | %p%")
+        self.wowVersion = wowVersion
         layout.addWidget(self.progress)
         self.addons = addons
         self.maxThreads = int(settings.value(defines.LCURSE_MAXTHREADS_KEY, defines.LCURSE_MAXTHREADS_DEFAULT))
@@ -251,7 +262,7 @@ class UpdateDlg(Qt.QDialog):
         self.threads = []
         for addon in self.addons:
             self.sem.acquire()
-            thread = UpdateWorker(addon)
+            thread = UpdateWorker(self.wowVersion, addon)
             thread.updateFinished.connect(self.onUpdateFinished)
             thread.start()
             self.threads.append(thread)
@@ -273,14 +284,15 @@ class UpdateDlg(Qt.QDialog):
 class UpdateWorker(Qt.QThread):
     updateFinished = Qt.pyqtSignal(Qt.QVariant, bool)
 
-    def __init__(self, addon):
+    def __init__(self, wowVersion, addon):
         super(UpdateWorker, self).__init__()
+        self.wowVersion = wowVersion
         self.addon = addon
 
     def doUpdateGit(self):
         try:
             settings = Qt.QSettings()
-            dest = "{}/_retail_/Interface/AddOns".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
+            dest = "{}/_{}_/Interface/AddOns".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT), self.wowVersion)
             destAddon = "{}/{}".format(dest, os.path.basename(str(self.addon[2]))[:-4])
             if not os.path.exists(destAddon):
                 os.chdir(dest)
@@ -297,10 +309,10 @@ class UpdateWorker(Qt.QThread):
         try:
             settings = Qt.QSettings()
             response = OpenWithRetry(self.addon[5][1])
-            dest = "{}/_retail_/Interface/AddOns/".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT))
+            dest = "{}/_{}_/Interface/AddOns/".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT), self.wowVersion)
 
             with tempfile.NamedTemporaryFile('w+b') as zipped:
-                zipped.write(response.read())
+                zipped.write(response.content)
                 zipped.seek(0)
                 with zipfile.ZipFile(zipped, 'r') as z:
                     r=re.compile(".*\.toc$")
@@ -310,7 +322,7 @@ class UpdateWorker(Qt.QThread):
                         t=r2.split(nome)
                         if len(t) == 2:
                             break
-                    toc="{}/_retail_/Interface/AddOns/{}".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT),nome)
+                    toc="{}/_{}_/Interface/AddOns/{}".format(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT), self.wowVersion, nome)
                     z.extractall(dest)
             return True, toc
         except Exception as e:
@@ -380,29 +392,30 @@ class UpdateCatalogWorker(Qt.QThread):
         self.lastpage = 1
 
     def retrievePartialListOfAddons(self, page):
-        response = OpenWithRetry("http://www.curseforge.com/wow/addons?page={}".format(page))
-        soup = BeautifulSoup(response.read(), "lxml")
+        response = OpenWithRetry("https://www.curseforge.com/wow/addons?page={}".format(page))
+        soup = BeautifulSoup(response.content, "lxml")
         # Curse returns a soft-500
         if soup.find_all("h2", string="Error"):
             print("Server-side error while getting addon list.")
 
         lastpage = 1
         if page == 1:
-            pager = soup.select("ul.b-pagination-list.paging-list.j-tablesorter-pager.j-listing-pagination li")
+            pager = soup.select("a.pagination-item span")
             if pager:
-                lastpage = int(pager[len(pager) - 2].contents[0].contents[0])
+                lastpage = int(pager[len(pager) - 1].contents[0])
 
-        projects = soup.select("li.project-list-item")  # li .title h4 a")
+        projects = soup.select("div.project-listing-row")
         self.addonsMutex.lock()
         for project in projects:
-            links=project.select("a.button--download")
-            texts=project.select("a h2")
+            links=project.select("a.button--hollow")
+            texts=project.select("a h3")
             for text in texts:
                 nome=text.string.replace('\\r','').replace('\\n','').strip()
                 break
             for link in links:
-                href=link.get("href", link.get("data-normal-href")).replace("/download",'')
-            self.addons.append([nome, "http://www.curseforge.com{}".format(href)])
+                href=link.get("href", link.get("data-normal-href")).replace("/woW/", "/wow/").replace("/download",'')
+                break
+            self.addons.append([nome, "https://www.curseforge.com{}".format(href)])
         self.progress.emit(len(self.addons))
         self.addonsMutex.unlock()
 

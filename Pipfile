@@ -7,5 +7,6 @@ python_version = '3.6'
 
 [packages]
 beautifulsoup4 = '>4.5.3'
+cfscrape = '*'
 lxml = '>3.6'
 PyQt5 = '>5.7'
