@@ -43,7 +43,7 @@ class Grid(Qt.QTableWidget):
         actionUpdate.setStatusTip(self.tr("Update currently selected addons if needed"))
         actionUpdate.triggered.connect(self.parent.updateAddons)
         self.menu.addAction(actionUpdate)
-        actionForceUpdate = Qt.QAction(self.tr("Force Update addon"), self)
+        actionForceUpdate = Qt.QAction(self.tr("Force update addon"), self)
         actionForceUpdate.setStatusTip(self.tr("Unconditionally update currently selected addons"))
         actionForceUpdate.triggered.connect(self.parent.forceUpdateAddon)        
         self.menu.addAction(actionForceUpdate)
@@ -101,7 +101,7 @@ class MainWidget(Qt.QMainWindow):
                 return str(int(v[0])*10000 + int(v[1])*100)
         except Exception as e:
             return settings.value(defines.WOW_TOC_KEY,defines.TOC)
-            print("Error messages",e)
+            print(self.tr("Error messages"),e)
                 
     def addWidgets(self):
         self.mainWidget = Qt.QWidget(self)
@@ -109,23 +109,23 @@ class MainWidget(Qt.QMainWindow):
 
         menubar = self.menuBar()
 
-        actionLoad = Qt.QAction(self.tr("Load Addons"), self)
+        actionLoad = Qt.QAction(self.tr("Load addons"), self)
         actionLoad.setShortcut("Ctrl+L")
-        actionLoad.setStatusTip(self.tr("Re/Load your addons configuration"))
+        actionLoad.setStatusTip(self.tr("Re/Load your addon configuration"))
         actionLoad.triggered.connect(self.loadAddons)
 
-        actionSave = Qt.QAction(self.tr("Save Addons"), self)
+        actionSave = Qt.QAction(self.tr("Save addons"), self)
         actionSave.setShortcut("Ctrl+S")
-        actionSave.setStatusTip(self.tr("Save your addons configuration"))
+        actionSave.setStatusTip(self.tr("Save your addon configuration"))
         actionSave.triggered.connect(self.saveAddons)
 
-        actionImport = Qt.QAction(self.tr("Import Addons"), self)
-        actionImport.setStatusTip(self.tr("Import Addons from WoW installation"))
+        actionImport = Qt.QAction(self.tr("Import addons"), self)
+        actionImport.setStatusTip(self.tr("Import addons from WoW installation"))
         actionImport.triggered.connect(self.importAddons)
 
         actionPrefs = Qt.QAction(self.tr("Preferences"), self)
         actionPrefs.setShortcut("Ctrl+P")
-        actionPrefs.setStatusTip(self.tr("Change preferences like wow install folder"))
+        actionPrefs.setStatusTip(self.tr("Change preferences, like WoW install folder"))
         actionPrefs.triggered.connect(self.openPreferences)
 
         actionExit = Qt.QAction(self.tr("Exit"), self)
@@ -211,7 +211,7 @@ class MainWidget(Qt.QMainWindow):
         self.addAction(actionUpdate)
         self.addAction(actionForceUpdate)
 
-        actionCatalogUpdate = Qt.QAction(self.tr("Update Catalog"), self)
+        actionCatalogUpdate = Qt.QAction(self.tr("Update catalog"), self)
         actionCatalogUpdate.setStatusTip(self.tr("Retrieve a list of available addons"))
         actionCatalogUpdate.triggered.connect(self.updateCatalog)
         menuCatalog = menubar.addMenu(self.tr("Catalog"))
@@ -230,7 +230,7 @@ class MainWidget(Qt.QMainWindow):
         self.addonList = Grid(self)
 
         self.addonList.setColumnCount(5)
-        self.addonList.setHorizontalHeaderLabels(["Name", "Url", "Version", "Toc", "Allow Beta"])
+        self.addonList.setHorizontalHeaderLabels([self.tr("Name"), self.tr("Url"), self.tr("Version"), self.tr("TOC"), self.tr("Allow Beta")])
 
         self.resize(1070, 815)
         screen = Qt.QDesktopWidget().screenGeometry()
@@ -349,7 +349,7 @@ class MainWidget(Qt.QMainWindow):
             if not version:
                 version="n/a"
             if not name:
-                print("not enough informations found for addon  {}\n(version={},name={},toc={})\n".format(toc,version,name,tocversion))
+                print(self.tr("not enough information found for addon {}\n(version={},name={},toc={})\n").format(toc,version,name,tocversion))
         name = self.removeStupidStuff(name)
         curseId = self.removeStupidStuff(curseId)
         
@@ -420,7 +420,7 @@ class MainWidget(Qt.QMainWindow):
                     dbversion = data['dbversion']
                     addons = data['addons']
                 except:
-                    print("Warning, old database, will convert")
+                    print(self.tr("Warning, old database, will convert"))
                     dbversion = 0
                     addons = data 
         if not addons:
@@ -464,7 +464,7 @@ class MainWidget(Qt.QMainWindow):
         self.addonList.setSortingEnabled(True)
         
     def saveAddons(self):
-        print("Saving addons to ",self.addonsFile)
+        print(self.tr("Saving addons to {}").format(self.addonsFile))
         addons = []
         sortSection = self.addonList.horizontalHeader().sortIndicatorSection()
         sortOrder = self.addonList.horizontalHeader().sortIndicatorOrder()
@@ -497,21 +497,21 @@ class MainWidget(Qt.QMainWindow):
                 if item[0] == name:
                     url = item[1]
         except IndexError:
-            print("can't handle: " + name)
+            print(self.tr("can't handle: {}").format(name))
             name = ""
         
         if url == None:
             url = str(nameOrUrl)
             if "curseforge.com" in url:
                 try:
-                    print("retrieving addon informations")
+                    print(self.tr("retrieving addon information"))
                     response = opener.open(urlparse(urlquote(url, ':/')).geturl())
                     soup = BeautifulSoup(response.read(), "lxml")
                     try:
                         captions = soup.select("h2.name")
                         name = captions[0].string
                     except:
-                        print("www.curseforge.com layout has changed.")
+                        print(self.tr("www.curseforge.com layout has changed."))
                         pass
                 except HTTPError as e:
                     print(e)
@@ -523,10 +523,10 @@ class MainWidget(Qt.QMainWindow):
 
     def updateDatabaseFormat(self,oldVersion):
         if oldVersion != defines.LCURSE_DBVERSION:
-            print("Db version is ", oldVersion, " vs ", defines.LCURSE_DBVERSION)
+            print(self.tr("Db version is {} vs {}").format(oldVersion, defines.LCURSE_DBVERSION))
         if oldVersion >= defines.LCURSE_DBVERSION:
             return {}
-        print("Database update!")
+        print(self.tr("Database update!"))
         settings = Qt.QSettings()
         parent = "{}/_{}_/Interface/AddOns".format(str(settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT)), self.wowVersion1)
         contents = os.listdir(parent)
@@ -557,7 +557,7 @@ class MainWidget(Qt.QMainWindow):
 
     def removeAddon(self):
         row = self.addonList.currentRow()
-        print("Current Row: {0:d}".format(row))
+        print(self.tr("Current Row: {0:d}").format(row))
         answer = Qt.QMessageBox.question(self, self.tr("Remove selected addon"),
                                          str(self.tr("Do you really want to remove the following addon?\n{}")).format(
                                              str(self.addonList.item(row, 0).text())),
@@ -705,7 +705,7 @@ class MainWidget(Qt.QMainWindow):
         self.updateAddons(rows=range(self.addonList.rowCount()))
 
     def onUpdateCatalogFinished(self, addons):
-        print("retrieved list of addons: {}".format(len(addons)))
+        print(self.tr("retrieved list of addons: {}").format(len(addons)))
         self.availableAddons = addons
         with open(defines.LCURSE_ADDON_CATALOG, "w") as c:
             json.dump(self.availableAddons, c)
