@@ -9,7 +9,7 @@ from PyQt5 import Qt
 
 rootDir = os.path.dirname(os.path.realpath(__file__))
 modulesDir = "{}/modules".format(rootDir)
-appTranslationFile = "{}/translations/{}.qm".format(rootDir, Qt.QLocale.system().name())
+appTranslationDir = "{}/translations".format(rootDir)
 
 sys.path.insert(0, modulesDir)
 
@@ -21,14 +21,18 @@ translations = []
 
 
 def loadTranslators():
+    localeName = Qt.QLocale.system().name()
+
     qttranslator = Qt.QTranslator()
-    qttranslator.load("qt_" + Qt.QLocale.system().name(), Qt.QLibraryInfo.location(Qt.QLibraryInfo.TranslationsPath))
+    qttranslator.load("qt_" + localeName, Qt.QLibraryInfo.location(Qt.QLibraryInfo.TranslationsPath))
     translations.append(qttranslator)
+
+    appTranslationFile = "{}/{}.qm".format(appTranslationDir, localeName)
     if os.path.exists(appTranslationFile):
         apptranslator = Qt.QTranslator()
         apptranslator.load(appTranslationFile)
         translations.append(apptranslator)
-    else:
+    elif localeName[:2] != 'en':
         print("WARNING: gui translation file could not be found: {}".format(appTranslationFile))
 
     for translator in translations:
