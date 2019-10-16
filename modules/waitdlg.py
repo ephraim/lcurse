@@ -169,7 +169,8 @@ class CheckWorker(Qt.QThread):
         try:
             settings = Qt.QSettings()
             dest = "{}/_{}_/Interface/AddOns/{}".format(
-                settings.value(defines.WOW_FOLDER_KEY, self.wowVersion, defines.WOW_FOLDER_DEFAULT),
+                settings.value(defines.WOW_FOLDER_KEY, defines.WOW_FOLDER_DEFAULT),
+                self.wowVersion,
                 os.path.basename(str(self.addon[2])[:-4]))
             originCurrent = str(check_output(["git", "ls-remote", str(self.addon[2]), "HEAD"]), "utf-8").split()[0]
             localCurrent = self.addon[3]
@@ -300,7 +301,12 @@ class UpdateWorker(Qt.QThread):
             else:
                 os.chdir(destAddon)
                 check_call(["git", "pull"])
-            return True
+            toc = None
+            for filename in os.listdir(destAddon):
+                if filename[-4:] == '.toc':
+                    toc = '{}/{}'.format(destAddon, filename)
+                    break
+            return True, toc
         except Exception as e:
             print("DoGitUpdate",e)
         return False
