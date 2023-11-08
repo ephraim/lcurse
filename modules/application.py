@@ -657,13 +657,15 @@ class MainWidget(Qt.QMainWindow):
 
     def onUpdateFinished(self, addon, result):
         if result:
+            tmp=None
             toc=str(addon[6])
             if os.path.exists(toc):
                 tmp = self.extractAddonMetadataFromTOC(toc)
             data = self.addonList.item(addon[0], 0).data(Qt.Qt.UserRole)
             self.addonList.item(addon[0], 2).setText(data[0])
-            self.addonList.item(addon[0], 3).setText(tmp[3])
-            if (tmp[3] < defines.TOC):
+            if tmp:
+                self.addonList.item(addon[0], 3).setText(tmp[3])
+            if (tmp and tmp[3] < defines.TOC):
                 self.addonList.item(addon[0], 3).setForeground(Qt.Qt.red)
             else:
                 self.addonList.item(addon[0], 3).setForeground(Qt.Qt.blue)
