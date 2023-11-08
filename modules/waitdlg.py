@@ -63,7 +63,7 @@ def OpenWithRetry(url):
             return response
 
         except Exception as e:
-            print("Could not open '{}', retrying... ({})".format(url, count))
+            print(self.tr("Could not open '{}', retrying... ({})").format(url, count))
 
             count = count + 1
             time.sleep(1)
@@ -178,7 +178,7 @@ class CheckWorker(Qt.QThread):
                 return (True, (originCurrent, ""))
             return (False, ("", ""))
         except Exception as e:
-            print("Git Update Exception",e)
+            print(self.tr("Git Update Exception"),e)
         return (False, None)
 
     def needsUpdateCurse(self):
@@ -220,7 +220,7 @@ class CheckWorker(Qt.QThread):
                     return (True, (version, downloadLink))
             return (False, ("", ""))
         except RequestException as e:
-            print("Curse Update Exception",e)
+            print(self.tr("Curse Update Exception"),e)
         except Exception as e:
             print(e)
         return (False, None)
@@ -353,7 +353,7 @@ class UpdateCatalogDlg(Qt.QDialog):
     def __init__(self, parent):
         super(UpdateCatalogDlg, self).__init__(parent)
         layout = Qt.QVBoxLayout(self)
-        layout.addWidget(Qt.QLabel(self.tr("Updating list of available Addons...")))
+        layout.addWidget(Qt.QLabel(self.tr("Updating list of available addons...")))
         self.progress = Qt.QProgressBar(self)
         self.progress.setRange(0, 0)
         self.progress.setValue(0)
@@ -375,7 +375,7 @@ class UpdateCatalogDlg(Qt.QDialog):
     def onProgress(self, foundAddons):
         value = self.progress.value() + 1
         self.progress.setValue(value)
-        self.progress.setFormat(self.tr("%p% - found Addons: {}").format(foundAddons))
+        self.progress.setFormat(self.tr("%p% - found addons: {}").format(foundAddons))
 
     @Qt.pyqtSlot(Qt.QVariant)
     def onUpdateCatalogFinished(self, addons):
@@ -402,7 +402,7 @@ class UpdateCatalogWorker(Qt.QThread):
         soup = BeautifulSoup(response.content, "lxml")
         # Curse returns a soft-500
         if soup.find_all("h2", string="Error"):
-            print("Server-side error while getting addon list.")
+            print(self.tr("Server-side error while getting addon list."))
 
         lastpage = 1
         if page == 1:

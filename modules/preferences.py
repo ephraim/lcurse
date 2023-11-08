@@ -25,7 +25,7 @@ class PreferencesDlg(Qt.QDialog):
         self.maxthreads.setValue(self.getMaxThreads())
         layout.addWidget(self.maxthreads)
 
-        layout.addWidget(Qt.QLabel(self.tr("Current Toc Number:"), self))
+        layout.addWidget(Qt.QLabel(self.tr("Current TOC Number:"), self))
         self.currenttoc = Qt.QLineEdit(str(self.getTocVersion()),self)
         layout.addWidget(self.currenttoc)
 
@@ -55,7 +55,7 @@ class PreferencesDlg(Qt.QDialog):
                 self.wowInstallFolder.setText(selectedDir)
             else:
                 Qt.QMessageBox.warning(self, self.tr("Not Wow-Folder"), self.tr(
-                    "The selected folder wasn't an installation directory of wow.\nPlease select the wow folder"))
+                    "The selected folder is not a WoW installation directory.\nPlease select the WoW folder"))
 
     def getMaxThreads(self):
         return int(self.settings.value(defines.LCURSE_MAXTHREADS_KEY, defines.LCURSE_MAXTHREADS_DEFAULT))
